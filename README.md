@@ -1,2 +1,2 @@
 # projeto-ia376
-Repositório para entrega do projeto E1.
+Repositório para a primeira entrega do projeto (E1).

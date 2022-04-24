@@ -22,7 +22,7 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 > Neste projeto, temos por objetivo a síntese generativa dos timbres  de instrumentos musicais como flauta, violão, piano, órgão, metais (sopro), cordas e demais exemplares que constam no Nsynth Dataset através do uso de Redes Adversárias Generativas.
  
 ### Vídeo de apresentação da proposta do projeto:
-[![Projeto IA376](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E1/M%C3%ADdia/v%C3%ADdeo.JPG)](https://youtu.be/LqRADM9dA_o)
+[![Projeto IA376](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E1/Assets/v%C3%ADdeo.JPG)](https://youtu.be/LqRADM9dA_o)
 
 
 ## Metodologia Proposta:
@@ -40,7 +40,7 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 
 > Para a síntese dos timbres dos instrumentos que fazem parte do Nsynth Dataset, uma abordagem interessante é a GAN conhecida por GANSynth, cuja arquitetura é representada por:
 >
-![arquitetura](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E1/M%C3%ADdia/arquitetura_gansynth.jpg)
+![arquitetura](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E1/Assets/arquitetura_gansynth.jpg)
 >
 > Assim, o modelo amostra um vetor aleatório z de uma gaussiana esférica e o executa através de uma pilha de convoluções transpostas para aumentar a amostragem e gerar dados de saída x = G(z), que são alimentados em uma rede discriminadora de convoluções de redução de amostragem (cuja arquitetura espelha a do gerador) para estimar uma medida de divergência entre as distribuições real e gerada. 
 

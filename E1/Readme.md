@@ -3,7 +3,7 @@
 # `<Síntese de timbres de instrumentos musicais através de Redes Adversárias Generativas>`
 # `<Synthesis of musical instrument timbres through Generative Adversary Networks>`
 
-## Apresentação
+## Apresentação:
 
 O presente projeto foi originado no contexto das atividades da disciplina de pós-graduação *IA376L - Deep Learning aplicado a Síntese de Sinais*, 
 oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dra. Paula Dornhofer Paro Costa, do Departamento de Engenharia de Computação e Automação (DCA) da Faculdade de Engenharia Elétrica e de Computação (FEEC).
@@ -17,15 +17,15 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 > | Patrick Carvalho Tavares R. Ferreira  | 175480  | Eng. Eletricista |
 
 
-## Descrição Resumida do Projeto
+## Descrição Resumida do Projeto:
 
 > Neste projeto, temos por objetivo a síntese generativa dos timbres  de instrumentos musicais como flauta, violão, piano, órgão, metais (sopro), cordas e demais exemplares que constam no Nsynth Dataset através do uso de Redes Adversárias Generativas.
  
-### Vídeo de apresentação da proposta do projeto
+### Vídeo de apresentação da proposta do projeto:
 [![Projeto IA376](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E1/M%C3%ADdia/v%C3%ADdeo.JPG)](https://youtu.be/LqRADM9dA_o)
 
 
-## Metodologia Proposta
+## Metodologia Proposta:
 
 ### Base de Dados:
 
@@ -103,7 +103,7 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 > Ainda seria possível a análise subjetiva através de pesquisa entre os alunos da disciplina, contudo, considerando o conjunto universo de alunos, não haveria um acréscimo significativo na estatística comparativa entre os dados reais e sintetizados.
 
 
-## Cronograma
+## Cronograma:
 > Proposta de cronograma:
 >
 > |Atividade  | Descrição | Tempo estimado|
@@ -121,7 +121,7 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 
 
 
-## Referências Bibliográficas
+## Referências Bibliográficas:
 > [1] Engel, J.; Agrawal, K. K.; Chen, S.; Gulrajani, I.; Donahue, C.; Roberts, A.;**” Gansynth: Adversarial Neural Audio Synthesis”**; ICLR; 2019;
 >
 > [2] Karras, T.; Laine, S.; Aila, T.; **”A style-based generator architecture for generative adversarial networks”**; CoRR; abs/1812.04948; 2018b;

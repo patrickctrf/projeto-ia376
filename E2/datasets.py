@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 
-class NsynthDataset(Dataset):
+class NsynthDatasetTimeSeries(Dataset):
 
     def __init__(self, path="nsynth-valid/", shuffle=True):
         super().__init__()
@@ -46,11 +46,11 @@ class NsynthDataset(Dataset):
         sample_audio_array = wavfile.read(os.path.join(self.path, "audio", sample_info["note_str"]) + ".wav")[1]
         sample_audio_array = self._scale_data(sample_audio_array.reshape(1, -1))
 
-        intr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), 64000))
+        instr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), 64000))
         notas_one_hot = torch.zeros((len(self.notas_indices), 64000))
 
         # Setamos como 1 o elemento daquela familia (one hot)
-        intr_fmly_one_hot[self.instr_fmly_dict[sample_info["instrument_family_str"]]] = 1
+        instr_fmly_one_hot[self.instr_fmly_dict[sample_info["instrument_family_str"]]] = 1
         # pitch dividido por 12 (qtde de notas), para transcrever em nota
         # dentro da "oitava" em que aquele pitch se encontra.
         notas_one_hot[self.notas_indices[sample_info["pitch"] % len(self.notas_indices)]] = 1
@@ -58,8 +58,8 @@ class NsynthDataset(Dataset):
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
         # Sendo y == (sample_de_audio, one hot do timbre, one hot das notas)
-        return torch.cat((torch.normal(mean=0, std=0.5, size=(1, 64000)), intr_fmly_one_hot, notas_one_hot), dim=0), \
-               torch.cat((torch.tensor(sample_audio_array), intr_fmly_one_hot, notas_one_hot), dim=0)
+        return torch.cat((torch.normal(mean=0, std=0.5, size=(1, 64000)), instr_fmly_one_hot, notas_one_hot), dim=0), \
+               torch.cat((torch.tensor(sample_audio_array), instr_fmly_one_hot, notas_one_hot), dim=0)
 
     def __len__(self, ):
         return self.summary_df.shape[0]
@@ -71,13 +71,13 @@ class NsynthDataset(Dataset):
         return array * stds + means
 
 
-dataset = NsynthDataset(path="nsynth-train/", shuffle=True)
-
-x = dataset[0]
-
-dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
-
-for sample in tqdm(dataloader):
-    print(sample)
-
-x = 1
+# dataset = NsynthDatasetTimeSeries(path="nsynth-train/", shuffle=True)
+#
+# x = dataset[0]
+#
+# dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
+#
+# for sample in tqdm(dataloader):
+#     print(sample)
+#
+# x = 1

@@ -16,7 +16,7 @@ def train(max_int: int = 128, batch_size: int = 16, training_steps: int = 500):
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
 
     # loss
-    loss = nn.MSELoss()
+    loss = nn.BCEWithLogitsLoss()
 
     for i in range(training_steps):
         # zero the gradients on each iteration

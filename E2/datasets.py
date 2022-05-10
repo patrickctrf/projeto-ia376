@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 import torch
 from scipy.io import wavfile
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 
 
 class NsynthDataset(Dataset):
@@ -43,22 +44,22 @@ class NsynthDataset(Dataset):
         sample_info = self.summary_df.loc[idx]
 
         sample_audio_array = wavfile.read(os.path.join(self.path, "audio", sample_info["note_str"]) + ".wav")[1]
-        sample_audio_array = self._scale_data(sample_audio_array.reshape(1, 1, -1))
+        sample_audio_array = self._scale_data(sample_audio_array.reshape(1, -1))
 
-        intr_fmly_one_hot = torch.zeros((1, len(self.instr_fmly_dict.keys()), 64000))
-        notas_one_hot = torch.zeros((1, len(self.notas_indices), 64000))
+        intr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), 64000))
+        notas_one_hot = torch.zeros((len(self.notas_indices), 64000))
 
         # Setamos como 1 o elemento daquela familia (one hot)
-        intr_fmly_one_hot[0, self.instr_fmly_dict[sample_info["instrument_family_str"]]] = 1
+        intr_fmly_one_hot[self.instr_fmly_dict[sample_info["instrument_family_str"]]] = 1
         # pitch dividido por 12 (qtde de notas), para transcrever em nota
         # dentro da "oitava" em que aquele pitch se encontra.
-        notas_one_hot[0, self.notas_indices[sample_info["pitch"] % len(self.notas_indices)]] = 1
+        notas_one_hot[self.notas_indices[sample_info["pitch"] % len(self.notas_indices)]] = 1
 
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
         # Sendo y == (sample_de_audio, one hot do timbre, one hot das notas)
-        return torch.cat((torch.normal(mean=0, std=0.5, size=(1, 1, 64000)), intr_fmly_one_hot, notas_one_hot), dim=1), \
-               torch.cat((torch.tensor(sample_audio_array), intr_fmly_one_hot, notas_one_hot), dim=1)
+        return torch.cat((torch.normal(mean=0, std=0.5, size=(1, 64000)), intr_fmly_one_hot, notas_one_hot), dim=0), \
+               torch.cat((torch.tensor(sample_audio_array), intr_fmly_one_hot, notas_one_hot), dim=0)
 
     def __len__(self, ):
         return self.summary_df.shape[0]
@@ -69,8 +70,14 @@ class NsynthDataset(Dataset):
     def _unscale_data(self, array, means=0.0, stds=30000):
         return array * stds + means
 
-# dataset = NsynthDataset()
-#
-# dataset[0]
-#
-# x = 1
+
+dataset = NsynthDataset(path="nsynth-train/", shuffle=True)
+
+x = dataset[0]
+
+dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
+
+for sample in tqdm(dataloader):
+    print(sample)
+
+x = 1

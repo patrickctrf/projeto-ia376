@@ -11,9 +11,9 @@ from tqdm import tqdm
 
 class NsynthDatasetTimeSeries(Dataset):
 
-    def __init__(self, path="nsynth-valid/", shuffle=True):
+    def __init__(self, path="nsynth-train/", noise_length=256, shuffle=True):
         super().__init__()
-
+        self.noise_length = noise_length
         self.path = path
 
         instr_fmly_name = ["bass", "brass", "flute", "guitar", "keyboard",
@@ -46,8 +46,8 @@ class NsynthDatasetTimeSeries(Dataset):
         sample_audio_array = wavfile.read(os.path.join(self.path, "audio", sample_info["note_str"]) + ".wav")[1]
         sample_audio_array = self._scale_data(sample_audio_array.reshape(1, -1))
 
-        instr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), 64000))
-        notas_one_hot = torch.zeros((len(self.notas_indices), 64000))
+        instr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), self.noise_length))
+        notas_one_hot = torch.zeros((len(self.notas_indices), self.noise_length))
 
         # Setamos como 1 o elemento daquela familia (one hot)
         instr_fmly_one_hot[self.instr_fmly_dict[sample_info["instrument_family_str"]]] = 1
@@ -58,8 +58,9 @@ class NsynthDatasetTimeSeries(Dataset):
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
         # Sendo y == (sample_de_audio, one hot do timbre, one hot das notas)
-        return torch.cat((torch.normal(mean=0, std=0.5, size=(1, 64000)), instr_fmly_one_hot, notas_one_hot), dim=0), \
-               torch.cat((torch.tensor(sample_audio_array), instr_fmly_one_hot, notas_one_hot), dim=0)
+        return torch.cat((torch.normal(mean=0, std=0.5, size=(1, self.noise_length)), instr_fmly_one_hot, notas_one_hot), dim=0), \
+               torch.tensor(sample_audio_array)
+        # torch.cat((torch.tensor(sample_audio_array), instr_fmly_one_hot, notas_one_hot), dim=0)
 
     def __len__(self, ):
         return self.summary_df.shape[0]
@@ -71,13 +72,14 @@ class NsynthDatasetTimeSeries(Dataset):
         return array * stds + means
 
 
-# dataset = NsynthDatasetTimeSeries(path="nsynth-train/", shuffle=True)
-#
-# x = dataset[0]
-#
-# dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
-#
-# for sample in tqdm(dataloader):
-#     print(sample)
-#
-# x = 1
+if __name__ == '__main__':
+    dataset = NsynthDatasetTimeSeries(path="nsynth-train/", shuffle=True)
+
+    x = dataset[0]
+
+    dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
+
+    for sample in tqdm(dataloader):
+        print(sample)
+
+    x = 1

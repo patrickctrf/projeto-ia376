@@ -108,7 +108,7 @@ def experiment(device=torch.device("cpu")):
 
 
 if __name__ == '__main__':
-    if 0 and torch.cuda.is_available():
+    if torch.cuda.is_available():
         dev = "cuda:0"
         print("Usando GPU")
     else:

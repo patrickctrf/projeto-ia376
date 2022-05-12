@@ -1,3 +1,5 @@
+import csv
+
 import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
@@ -15,23 +17,11 @@ def experiment(device=torch.device("cpu")):
 
     # Models
     generator = Generator1D(noise_length=noise_length, n_input_channels=24, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
-
-    # print("esperando")
-    # sleep(30)
-
     discriminator = Discriminator1D(n_input_channels=1, n_output_channels=64, kernel_size=7, stride=1, padding=0, dilation=1)
-
-    # print("esperando")
-    # sleep(30)
 
     # Put in GPU (if available)
     generator.to(device)
-
-    # print("esperando")
-    # sleep(30)
     discriminator.to(device)
-    # print("esperando")
-    # sleep(30)
 
     # Optimizers
     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01)
@@ -40,9 +30,6 @@ def experiment(device=torch.device("cpu")):
     # loss
     loss = BCEWithLogitsLoss()
 
-    # print("esperando")
-    # sleep(30)
-
     # Train Data
     train_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
@@ -50,25 +37,27 @@ def experiment(device=torch.device("cpu")):
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
     train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
 
-    # print("esperando")
-    # sleep(30)
+    # # Validation Data
+    # valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
+    # # O tamanho do mini batch de validacao tem que ser tal que o dataloader de
+    # # validacao tenho o mesmo tamanho do de treino
+    # validation_batch_size = len(valid_dataset) // len(train_dataloader)
+    # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
+    # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4)
+    # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
+    # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
 
-    # Validation Data
-    valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
-    # O tamanho do mini batch de validacao tem que ser tal que o dataloader de
-    # validacao tenho o mesmo tamanho do de treino
-    validation_batch_size = len(valid_dataset) // len(train_dataloader)
-    assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
-    valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4)
-    # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
-
-    # print("esperando")
-    # sleep(30)
-
+    best_validation_loss = 9999999
+    f = open("loss_log.csv", "w")
+    w = csv.writer(f)
+    w.writerow(["epoch", "training_loss"])
     for i in tqdm(range(epochs)):
         total_generator_loss = 0
-        for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
+        generator.train()
+        discriminator.train()
+        # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
+        for x_train, y_train in tqdm(train_datamanager, total=len(train_dataloader)):
+
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
 
@@ -102,10 +91,24 @@ def experiment(device=torch.device("cpu")):
             total_generator_loss += generator_loss.item()
 
         print(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
+        w.writerow([i, total_generator_loss])
+        f.flush()
+
+        # Checkpoint to best models found.
+        if best_validation_loss > total_generator_loss:
+            # Update the new best loss.
+            best_validation_loss = total_generator_loss
+            generator.eval()
+            torch.save(generator, "best_generator.pth")
+            torch.save(generator.state_dict(), "best_generator_state_dict.pth")
+            discriminator.eval()
+            torch.save(generator, "best_discriminator.pth")
+            torch.save(generator.state_dict(), "best_discriminator_state_dict.pth")
+    f.close()
 
 
 if __name__ == '__main__':
-    if 0 and torch.cuda.is_available():
+    if torch.cuda.is_available():
         dev = "cuda:0"
         print("Usando GPU")
     else:

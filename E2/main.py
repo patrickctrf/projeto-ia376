@@ -9,24 +9,99 @@ from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    epochs = 20
+    epochs = 10
+    batch_size = 64
+    noise_length = 64000
 
-    model = Generator1D(n_input_channels=24, n_output_channels=64,
-                        kernel_size=7, stride=1, padding=0, dilation=1)
-    model.to(device)
+    # Models
+    generator = Generator1D(noise_length=noise_length, n_input_channels=24, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
 
-    dataset = NsynthDatasetTimeSeries(path="nsynth-test/")
+    # print("esperando")
+    # sleep(30)
 
+    discriminator = Discriminator1D(n_input_channels=1, n_output_channels=64, kernel_size=7, stride=1, padding=0, dilation=1)
+
+    # print("esperando")
+    # sleep(30)
+
+    # Put in GPU (if available)
+    generator.to(device)
+
+    # print("esperando")
+    # sleep(30)
+    discriminator.to(device)
+    # print("esperando")
+    # sleep(30)
+
+    # Optimizers
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01)
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01)
+
+    # loss
+    loss = BCEWithLogitsLoss()
+
+    # print("esperando")
+    # sleep(30)
+
+    # Train Data
+    train_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
-    dataloader = DataLoader(dataset, batch_size=256, shuffle=True, num_workers=4)
-
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    datamanager = DataManager(dataloader, device=device, buffer_size=3)
+    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
+
+    # print("esperando")
+    # sleep(30)
+
+    # Validation Data
+    valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
+    # O tamanho do mini batch de validacao tem que ser tal que o dataloader de
+    # validacao tenho o mesmo tamanho do de treino
+    validation_batch_size = len(valid_dataset) // len(train_dataloader)
+    assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
+    valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4)
+    # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
+    valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
+
+    # print("esperando")
+    # sleep(30)
 
     for i in tqdm(range(epochs)):
-        for x, y in tqdm(datamanager):
-            # print(model(x).shape)
-            model(x)
+        total_generator_loss = 0
+        for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
+            # zero the gradients on each iteration
+            generator_optimizer.zero_grad()
+
+            generated_data = generator(x_train)
+
+            # Comodidade para dizer que as saidas sao verdadeiras ou falsas
+            true_labels = torch.ones((x_train.shape[0], 1))
+            fake_labels = torch.ones((x_train.shape[0], 1))
+
+            # Train the generator
+            # We invert the labels here and don't train the discriminator because we want the generator
+            # to make things the discriminator classifies as true.
+            generator_discriminator_out = discriminator(generated_data)
+            generator_loss = loss(generator_discriminator_out, true_labels)
+            generator_loss.backward()
+            generator_optimizer.step()
+
+            # Train the discriminator on the true/generated data
+            discriminator_optimizer.zero_grad()
+            true_discriminator_out = discriminator(y_train)
+            true_discriminator_loss = loss(true_discriminator_out, true_labels)
+
+            # add .detach() here think about this
+            generator_discriminator_out = discriminator(generated_data.detach())
+            generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
+            discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
+            discriminator_loss.backward()
+            discriminator_optimizer.step()
+
+            print(f'mini-batch generator_loss: {generator_loss.item():5.5f}')
+            total_generator_loss += generator_loss.item()
+
+        print(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
 
 
 if __name__ == '__main__':
@@ -40,45 +115,40 @@ if __name__ == '__main__':
 
     experiment(device)
 
-
-def train(max_int: int = 128, batch_size: int = 16, training_steps: int = 500):
-
-    # Models
-    generator = Generator1D(input_length)
-    discriminator = Discriminator1D(input_length)
-
-    # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001)
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
-
-    # loss
-    loss = BCEWithLogitsLoss()
-
-    for i in range(training_steps):
-        # zero the gradients on each iteration
-        generator_optimizer.zero_grad()
-
-        # Create noisy input for generator
-        # Need float type instead of int
-        noise = torch.randint(0, 2, size=(batch_size, input_length)).float()
-        generated_data = generator(noise)
-
-        # Train the generator
-        # We invert the labels here and don't train the discriminator because we want the generator
-        # to make things the discriminator classifies as true.
-        generator_discriminator_out = discriminator(generated_data)
-        generator_loss = loss(generator_discriminator_out, true_labels)
-        generator_loss.backward()
-        generator_optimizer.step()
-
-        # Train the discriminator on the true/generated data
-        discriminator_optimizer.zero_grad()
-        true_discriminator_out = discriminator(true_data)
-        true_discriminator_loss = loss(true_discriminator_out, true_labels)
-
-        # add .detach() here think about this
-        generator_discriminator_out = discriminator(generated_data.detach())
-        generator_discriminator_loss = loss(generator_discriminator_out, torch.zeros(batch_size))
-        discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
-        discriminator_loss.backward()
-        discriminator_optimizer.step()
+# def train(max_int: int = 128, batch_size: int = 16, training_steps: int = 500):
+#     # Models
+#     generator = Generator1D(input_length)
+#     discriminator = Discriminator1D(input_length)
+#
+#     # Optimizers
+#     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001)
+#     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
+#
+#     # loss
+#     loss = BCEWithLogitsLoss()
+#
+#     for i in range(training_steps):
+#         # zero the gradients on each iteration
+#         generator_optimizer.zero_grad()
+#
+#         generated_data = generator(noise)
+#
+#         # Train the generator
+#         # We invert the labels here and don't train the discriminator because we want the generator
+#         # to make things the discriminator classifies as true.
+#         generator_discriminator_out = discriminator(generated_data)
+#         generator_loss = loss(generator_discriminator_out, true_labels)
+#         generator_loss.backward()
+#         generator_optimizer.step()
+#
+#         # Train the discriminator on the true/generated data
+#         discriminator_optimizer.zero_grad()
+#         true_discriminator_out = discriminator(true_data)
+#         true_discriminator_loss = loss(true_discriminator_out, true_labels)
+#
+#         # add .detach() here think about this
+#         generator_discriminator_out = discriminator(generated_data.detach())
+#         generator_discriminator_loss = loss(generator_discriminator_out, torch.zeros(batch_size))
+#         discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
+#         discriminator_loss.backward()
+#         discriminator_optimizer.step()

@@ -14,38 +14,18 @@ class Generator1D(nn.Module):
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),
             ResBlock(n_input_channels=2 * n_input_channels,
-                     n_output_channels=3 * n_input_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=3 * n_input_channels,
                      n_output_channels=4 * n_input_channels,
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),
             ResBlock(n_input_channels=4 * n_input_channels,
-                     n_output_channels=5 * n_input_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=5 * n_input_channels,
                      n_output_channels=6 * n_input_channels,
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),
             ResBlock(n_input_channels=6 * n_input_channels,
-                     n_output_channels=7 * n_input_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=7 * n_input_channels,
                      n_output_channels=8 * n_input_channels,
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),
             ResBlock(n_input_channels=8 * n_input_channels,
-                     n_output_channels=9 * n_input_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=9 * n_input_channels,
-                     n_output_channels=10 * n_input_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=10 * n_input_channels,
                      n_output_channels=n_output_channels,
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),
@@ -53,7 +33,7 @@ class Generator1D(nn.Module):
 
         # self.pooling = AdaptiveAvgPool1d(1)
 
-        self.linear = Linear(noise_length * n_output_channels, 64000)
+        # self.linear = Linear(noise_length * n_output_channels, 64000)
 
     def forward(self, x):
         # print("\nx.shape: ", x.shape)
@@ -68,7 +48,7 @@ class Generator1D(nn.Module):
         #
         # return out
 
-        return self.linear(self.feature_generator(x).flatten(start_dim=1))
+        return self.feature_generator(x).view(-1, 1, 64000)
 
 
 class Discriminator1D(nn.Module):
@@ -79,26 +59,6 @@ class Discriminator1D(nn.Module):
 
         self.feature_extractor = Sequential(
             ResBlock(n_input_channels=n_input_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
                      n_output_channels=n_output_channels,
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),

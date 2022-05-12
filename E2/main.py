@@ -91,6 +91,7 @@ def experiment(device=torch.device("cpu")):
             tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.item():5.5f}')
             total_generator_loss += generator_loss.item()
 
+        total_generator_loss /= len(train_dataloader)
         tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
         w.writerow([i, total_generator_loss])
         f.flush()

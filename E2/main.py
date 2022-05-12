@@ -59,15 +59,14 @@ def experiment(device=torch.device("cpu")):
         discriminator.train()
         # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
         for x_train, y_train in tqdm_bar_iter:
-
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
 
             generated_data = generator(x_train)
 
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas
-            true_labels = torch.ones((x_train.shape[0], 1))
-            fake_labels = torch.ones((x_train.shape[0], 1))
+            true_labels = torch.ones((x_train.shape[0], 1), device=device)
+            fake_labels = torch.ones((x_train.shape[0], 1), device=device)
 
             # Train the generator
             # We invert the labels here and don't train the discriminator because we want the generator

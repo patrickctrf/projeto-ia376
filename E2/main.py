@@ -12,7 +12,7 @@ from ptk.utils import DataManager
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 64
+    batch_size = 4
     noise_length = 64000
 
     # Models
@@ -51,12 +51,14 @@ def experiment(device=torch.device("cpu")):
     f = open("loss_log.csv", "w")
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
-    for i in tqdm(range(epochs)):
+    tqdm_bar_epoch = tqdm(range(epochs))
+    tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
+    for i in tqdm_bar_epoch:
         total_generator_loss = 0
         generator.train()
         discriminator.train()
         # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
-        for x_train, y_train in tqdm(train_datamanager, total=len(train_dataloader)):
+        for x_train, y_train in tqdm_bar_iter:
 
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
@@ -87,10 +89,10 @@ def experiment(device=torch.device("cpu")):
             discriminator_loss.backward()
             discriminator_optimizer.step()
 
-            print(f'mini-batch generator_loss: {generator_loss.item():5.5f}')
+            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.item():5.5f}')
             total_generator_loss += generator_loss.item()
 
-        print(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
+        tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
         w.writerow([i, total_generator_loss])
         f.flush()
 
@@ -108,7 +110,7 @@ def experiment(device=torch.device("cpu")):
 
 
 if __name__ == '__main__':
-    if torch.cuda.is_available():
+    if 0 and torch.cuda.is_available():
         dev = "cuda:0"
         print("Usando GPU")
     else:

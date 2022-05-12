@@ -66,7 +66,7 @@ def experiment(device=torch.device("cpu")):
 
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
-            fake_labels = torch.ones((x_train.shape[0], 1), device=device)
+            fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
 
             # Train the generator
             # We invert the labels here and don't train the discriminator because we want the generator

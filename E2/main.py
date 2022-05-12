@@ -31,7 +31,7 @@ def experiment(device=torch.device("cpu")):
     loss = BCEWithLogitsLoss()
 
     # Train Data
-    train_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
+    train_dataset = NsynthDatasetTimeSeries(path="nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)

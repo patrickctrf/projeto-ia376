@@ -54,18 +54,6 @@ class Discriminator1D(nn.Module):
                      n_output_channels=n_output_channels,
                      kernel_size=kernel_size, stride=stride, dilation=dilation,
                      bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
-            ResBlock(n_input_channels=n_output_channels,
-                     n_output_channels=n_output_channels,
-                     kernel_size=kernel_size, stride=stride, dilation=dilation,
-                     bias=bias),
         )
 
         # self.pooling = AdaptiveAvgPool1d(1)

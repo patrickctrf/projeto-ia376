@@ -35,7 +35,7 @@ def experiment(device=torch.device("cpu")):
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
+    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=0)
 
     # # Validation Data
     # valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
@@ -45,7 +45,7 @@ def experiment(device=torch.device("cpu")):
     # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
     # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
+    # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=0)
 
     best_validation_loss = 9999999
     f = open("loss_log.csv", "w")

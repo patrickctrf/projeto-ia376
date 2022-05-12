@@ -31,9 +31,9 @@ def experiment(device=torch.device("cpu")):
     loss = BCEWithLogitsLoss()
 
     # Train Data
-    train_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
+    train_dataset = NsynthDatasetTimeSeries(path="nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
     train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
 
@@ -43,7 +43,7 @@ def experiment(device=torch.device("cpu")):
     # # validacao tenho o mesmo tamanho do de treino
     # validation_batch_size = len(valid_dataset) // len(train_dataloader)
     # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
-    # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4)
+    # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
     # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
 
@@ -110,7 +110,7 @@ def experiment(device=torch.device("cpu")):
 
 
 if __name__ == '__main__':
-    if 0 and torch.cuda.is_available():
+    if torch.cuda.is_available():
         dev = "cuda:0"
         print("Usando GPU")
     else:

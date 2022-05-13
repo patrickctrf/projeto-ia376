@@ -12,9 +12,9 @@ from ptk.utils import DataManager
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 24
-    noise_length = 250
-    target_length = 250
+    batch_size = 1
+    noise_length = 1
+    target_length = 64000
 
     # Models
     generator = Generator1D(noise_length=noise_length, target_length=target_length, n_input_channels=24, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
@@ -48,7 +48,7 @@ def experiment(device=torch.device("cpu")):
     # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
     # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=0)
 
-    best_validation_loss = 9999999
+    best_validation_loss = 999999999
     f = open("loss_log.csv", "w")
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
@@ -69,6 +69,8 @@ def experiment(device=torch.device("cpu")):
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
             fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
 
+            print("check0")
+
             # Train the generator
             # We invert the labels here and don't train the discriminator because we want the generator
             # to make things the discriminator classifies as true.
@@ -77,10 +79,14 @@ def experiment(device=torch.device("cpu")):
             generator_loss.backward()
             generator_optimizer.step()
 
+            print("check1")
+
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
-            true_discriminator_out = discriminator(x_train[:, 0:1])  # y_train)
+            true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
             true_discriminator_loss = loss(true_discriminator_out, true_labels)
+
+            print("check2")
 
             # add .detach() here think about this
             generator_discriminator_out = discriminator(generated_data.detach())
@@ -89,8 +95,10 @@ def experiment(device=torch.device("cpu")):
             discriminator_loss.backward()
             discriminator_optimizer.step()
 
+            print("check3")
+
             tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.item():5.5f}')
-            total_generator_loss += generator_loss.item()
+            total_generator_loss += generator_loss.detach().item()
 
         total_generator_loss /= len(train_dataloader)
         tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
@@ -100,7 +108,7 @@ def experiment(device=torch.device("cpu")):
         # Checkpoint to best models found.
         if best_validation_loss > total_generator_loss:
             # Update the new best loss.
-            best_validation_loss = total_generator_loss
+            best_validation_loss = total_generator_loss.detach().item()
             generator.eval()
             torch.save(generator, "best_generator.pth")
             torch.save(generator.state_dict(), "best_generator_state_dict.pth")
@@ -111,7 +119,7 @@ def experiment(device=torch.device("cpu")):
 
 
 if __name__ == '__main__':
-    if torch.cuda.is_available():
+    if 0 and torch.cuda.is_available():
         dev = "cuda:0"
         print("Usando GPU")
     else:

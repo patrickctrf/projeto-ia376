@@ -1,12 +1,13 @@
 from torch import nn
-from torch.nn import Sequential, Conv1d, AdaptiveAvgPool1d, Linear
+from torch.nn import Sequential, Conv1d, Linear
 
 
 class Generator1D(nn.Module):
-    def __init__(self, noise_length=256, n_input_channels=24, n_output_channels=64,
+    def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
                  kernel_size=7, stride=1, padding=0, dilation=1,
                  bias=False):
         super().__init__()
+        self.target_length = target_length
 
         self.feature_generator = Sequential(
             ResBlock(n_input_channels=1 * n_input_channels,
@@ -19,24 +20,8 @@ class Generator1D(nn.Module):
                      bias=bias),
         )
 
-        # self.pooling = AdaptiveAvgPool1d(1)
-
-        # self.linear = Linear(noise_length * n_output_channels, 64000)
-
     def forward(self, x):
-        # print("\nx.shape: ", x.shape)
-        #
-        # features = self.feature_generator(x).flatten(start_dim=1)
-        #
-        # print("features.shape: ", features.shape)
-        #
-        # out = self.linear(features)
-        #
-        # print("out.shape: ", out.shape)
-        #
-        # return out
-
-        return self.feature_generator(x).view(-1, 1, 64000)
+        return self.feature_generator(x).view(-1, 1, self.target_length)
 
 
 class Discriminator1D(nn.Module):
@@ -61,7 +46,6 @@ class Discriminator1D(nn.Module):
         self.linear = Linear(seq_length * n_output_channels, 1)
 
     def forward(self, x):
-
         return self.linear(self.feature_extractor(x).flatten(start_dim=1))
 
 

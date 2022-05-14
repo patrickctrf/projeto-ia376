@@ -51,7 +51,6 @@ def experiment(device=torch.device("cpu")):
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
     tqdm_bar_epoch = tqdm(range(epochs))
-    tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
     tqdm_bar_epoch.set_description("epoch: 0. ")
     for i in tqdm_bar_epoch:
         total_generator_loss = 0
@@ -61,6 +60,7 @@ def experiment(device=torch.device("cpu")):
         train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
         # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
         # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
+        tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
         # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
         for x_train, y_train in tqdm_bar_iter:
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas

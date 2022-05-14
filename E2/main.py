@@ -19,7 +19,7 @@ def experiment(device=torch.device("cpu")):
     target_length = 64000
 
     # Models
-    generator = Generator1DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
+    generator = Generator1DTransposed(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
     discriminator = Discriminator1D(seq_length=target_length, n_input_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)

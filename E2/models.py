@@ -13,11 +13,11 @@ class Generator1DUpsampled(nn.Module):
 
         self.feature_generator = Sequential(
             nn.Upsample(size=(32000,), mode='linear', align_corners=True),
-            nn.Conv1d(n_input_channels, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=bias), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
-            nn.Conv1d(256, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=bias), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
-            nn.Upsample(size=(64012,), mode='linear', align_corners=True),
-            nn.Conv1d(256, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=bias), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
-            nn.Conv1d(256, n_output_channels, kernel_size=(7,), stride=(1,), dilation=(1,), bias=bias),
+            nn.Conv1d(n_input_channels, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
+            nn.Conv1d(256, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
+            nn.Upsample(size=(64004,), mode='linear', align_corners=True),
+            nn.Conv1d(256, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
+            nn.Conv1d(256, n_output_channels, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias),
         )
 
     def forward(self, x):
@@ -32,7 +32,7 @@ class Discriminator1D(nn.Module):
         n_output_channels = 256
 
         self.feature_extractor = Sequential(
-            nn.BatchNorm1d(n_input_channels),
+            nn.BatchNorm1d(n_input_channels, affine=False),
             nn.Conv1d(n_input_channels, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
             nn.MaxPool1d(2, 2),
             nn.Conv1d(256, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
@@ -106,37 +106,37 @@ class Generator1DTransposed(nn.Module):
 
         self.feature_generator = Sequential(
             nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(1,), padding=(1,), bias=bias),  # L=2
-            nn.PReLU(1 * n_filters), nn.BatchNorm1d(1 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(1 * n_filters, 2 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=4
-            nn.PReLU(2 * n_filters), nn.BatchNorm1d(2 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(2 * n_filters, 2 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=8
-            nn.PReLU(2 * n_filters), nn.BatchNorm1d(2 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(2 * n_filters, 3 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=16
-            nn.PReLU(3 * n_filters), nn.BatchNorm1d(3 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(3 * n_filters, 3 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32
-            nn.PReLU(3 * n_filters), nn.BatchNorm1d(3 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(3 * n_filters, 4 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64
-            nn.PReLU(4 * n_filters), nn.BatchNorm1d(4 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(4 * n_filters, 4 * n_filters, kernel_size=(5,), stride=(2,), padding=(3,), bias=bias),  # L=125
-            nn.PReLU(4 * n_filters), nn.BatchNorm1d(4 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(4 * n_filters, 5 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=250
-            nn.PReLU(5 * n_filters), nn.BatchNorm1d(5 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(5 * n_filters, 5 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=500
-            nn.PReLU(5 * n_filters), nn.BatchNorm1d(5 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(5 * n_filters, 6 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=1000
-            nn.PReLU(6 * n_filters), nn.BatchNorm1d(6 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(6 * n_filters, 6 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=2000
-            nn.PReLU(6 * n_filters), nn.BatchNorm1d(6 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(6 * n_filters, 7 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=4000
-            nn.PReLU(7 * n_filters), nn.BatchNorm1d(7 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(7 * n_filters, 7 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=8000
-            nn.PReLU(7 * n_filters), nn.BatchNorm1d(7 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(7 * n_filters, 8 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=16000
-            nn.PReLU(8 * n_filters), nn.BatchNorm1d(8 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(8 * n_filters, 8 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32000
-            nn.PReLU(8 * n_filters), nn.BatchNorm1d(8 * n_filters, affine=False),
+            nn.Tanh(),
             nn.ConvTranspose1d(8 * n_filters, 9 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64000
-            nn.PReLU(9 * n_filters), nn.BatchNorm1d(9 * n_filters, affine=False),
+            nn.Tanh(),
             nn.Conv1d(9 * n_filters, 1, (1,), bias=bias),  # L=64000
         )
 

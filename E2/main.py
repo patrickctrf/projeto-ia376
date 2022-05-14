@@ -58,6 +58,7 @@ def experiment(device=torch.device("cpu")):
     w.writerow(["epoch", "training_loss"])
     tqdm_bar_epoch = tqdm(range(epochs))
     tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
+    tqdm_bar_epoch.set_description("epoch: 0. ")
     for i in tqdm_bar_epoch:
         total_generator_loss = 0
         generator.train()
@@ -104,11 +105,11 @@ def experiment(device=torch.device("cpu")):
 
             # print("check3")
 
-            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}')
+            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.detach().item():15.15f}')
             total_generator_loss += generator_loss.detach().item()
 
         total_generator_loss /= len(train_dataloader)
-        tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
+        tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:15.15f}')
         w.writerow([i, total_generator_loss])
         f.flush()
 

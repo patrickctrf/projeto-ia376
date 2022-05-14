@@ -104,9 +104,9 @@ def experiment(device=torch.device("cpu")):
             discriminator_loss.backward()
             discriminator_optimizer.step()
 
-            print("gerador: ", generated_data)
-            print("discriminator_gen: ", generator_discriminator_out)
-            print("discriminator_real: ", true_discriminator_out)
+            # print("gerador: ", generated_data)
+            # print("discriminator_gen: ", generator_discriminator_out)
+            # print("discriminator_real: ", true_discriminator_out)
 
             # print("discriminator_backward: ", time.time() - t0)
 

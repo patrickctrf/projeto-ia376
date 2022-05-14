@@ -13,7 +13,7 @@ from ptk.utils import DataManager
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 16
+    batch_size = 1
     noise_length = 1
     target_length = 64000
     use_amp = True
@@ -82,6 +82,7 @@ def experiment(device=torch.device("cpu")):
                 generator_loss = loss(generator_discriminator_out, true_labels)
             generator_scaler.scale(generator_loss).backward()
             generator_scaler.step(generator_optimizer)
+            generator_scaler.update()
 
             # print("check1")
 
@@ -99,6 +100,7 @@ def experiment(device=torch.device("cpu")):
                 discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
             discriminator_scaler.scale(discriminator_loss).backward()
             discriminator_scaler.step(discriminator_optimizer)
+            discriminator_scaler.update()
 
             # print("check3")
 

@@ -37,8 +37,6 @@ def experiment(device=torch.device("cpu")):
     train_dataset = NsynthDatasetTimeSeries(path="nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
 
     # # Validation Data
     # valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
@@ -47,8 +45,6 @@ def experiment(device=torch.device("cpu")):
     # validation_batch_size = len(valid_dataset) // len(train_dataloader)
     # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
     # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
 
     best_validation_loss = 999999999
     f = open("loss_log.csv", "w")
@@ -61,6 +57,10 @@ def experiment(device=torch.device("cpu")):
         total_generator_loss = 0
         generator.train()
         discriminator.train()
+        # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
+        train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
+        # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
+        # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
         # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
         for x_train, y_train in tqdm_bar_iter:
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas

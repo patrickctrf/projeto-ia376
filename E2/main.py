@@ -3,12 +3,12 @@ import time
 
 import torch
 from torch.cuda.amp import GradScaler, autocast
-from torch.nn import BCEWithLogitsLoss
+from torch.nn import BCEWithLogitsLoss, BCELoss, CrossEntropyLoss, MSELoss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from datasets import NsynthDatasetTimeSeries
-from models import Discriminator1D, Generator1DUpsampled
+from models import *
 from ptk.utils import DataManager
 
 
@@ -17,24 +17,21 @@ def experiment(device=torch.device("cpu")):
     batch_size = 1
     noise_length = 1
     target_length = 64000
-    use_amp = True
 
     # Models
     generator = Generator1DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
-    discriminator = Discriminator1D(seq_length=target_length, n_input_channels=1, n_output_channels=64, kernel_size=7, stride=1, padding=0, dilation=1)
+    discriminator = Discriminator1D(seq_length=target_length, n_input_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
     generator.to(device)
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01)
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01)
-    generator_scaler = GradScaler()
-    discriminator_scaler = GradScaler()
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
 
     # loss
-    loss = BCEWithLogitsLoss()
+    loss = BCELoss()
 
     # Train Data
     train_dataset = NsynthDatasetTimeSeries(path="nsynth-train/", noise_length=noise_length)
@@ -74,40 +71,42 @@ def experiment(device=torch.device("cpu")):
 
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
-            with autocast(use_amp):
-                generated_data = generator(x_train)
 
-                # print("generator_output: ", time.time() - t0)
-                # t0 = time.time()
+            generated_data = generator(x_train)
 
-                # Train the generator
-                # We invert the labels here and don't train the discriminator because we want the generator
-                # to make things the discriminator classifies as true.
-                generator_discriminator_out = discriminator(generated_data)
-                generator_loss = loss(generator_discriminator_out, true_labels)
-            generator_scaler.scale(generator_loss).backward()
-            generator_scaler.step(generator_optimizer)
-            generator_scaler.update()
+            # print("generator_output: ", time.time() - t0)
+            # t0 = time.time()
+
+            # Train the generator
+            # We invert the labels here and don't train the discriminator because we want the generator
+            # to make things the discriminator classifies as true.
+            generator_discriminator_out = discriminator(torch.ones((x_train.shape[0], 1, 64000), device=device))  # generated_data)
+            generator_loss = loss(generator_discriminator_out, true_labels)
+            generator_loss.backward()
+            generator_optimizer.step()
 
             # print("generator_backward: ", time.time() - t0)
             # t0 = time.time()
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
-            with autocast(use_amp):
-                true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
-                true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
-                # print("discriminator_output: ", time.time() - t0)
-                # t0 = time.time()
+            true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
+            true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
-                # add .detach() here think about this
-                generator_discriminator_out = discriminator(generated_data.detach())
-                generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
-                discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
-            discriminator_scaler.scale(discriminator_loss).backward()
-            discriminator_scaler.step(discriminator_optimizer)
-            discriminator_scaler.update()
+            # print("discriminator_output: ", time.time() - t0)
+            # t0 = time.time()
+
+            # add .detach() here think about this
+            generator_discriminator_out = discriminator(torch.ones((x_train.shape[0], 1, 64000), device=device))#generated_data.detach())
+            generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
+            discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
+            discriminator_loss.backward()
+            discriminator_optimizer.step()
+
+            print("gerador: ", generated_data)
+            print("discriminator_gen: ", generator_discriminator_out)
+            print("discriminator_real: ", true_discriminator_out)
 
             # print("discriminator_backward: ", time.time() - t0)
 

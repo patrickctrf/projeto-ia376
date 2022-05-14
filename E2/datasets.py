@@ -46,7 +46,7 @@ class NsynthDatasetTimeSeries(Dataset):
         sample_info = self.summary_df.loc[idx]
 
         sample_audio_array = wavfile.read(os.path.join(self.path, "audio", sample_info["note_str"]) + ".wav")[1]
-        sample_audio_array = self._scale_data(sample_audio_array.reshape(1, -1))
+        sample_audio_array = self._scale_data(sample_audio_array.reshape(1, -1), means=0.0, stds=300.0)
 
         instr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), self.noise_length))
         notas_one_hot = torch.zeros((len(self.notas_indices), self.noise_length))
@@ -67,10 +67,10 @@ class NsynthDatasetTimeSeries(Dataset):
     def __len__(self, ):
         return self.summary_df.shape[0]
 
-    def _scale_data(self, array, means=0.0, stds=30000):
+    def _scale_data(self, array, means=0.0, stds=3000.0):
         return (array - means) / stds
 
-    def _unscale_data(self, array, means=0.0, stds=30000):
+    def _unscale_data(self, array, means=0.0, stds=3000.0):
         return array * stds + means
 
 

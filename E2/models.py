@@ -13,11 +13,11 @@ class Generator1DUpsampled(nn.Module):
 
         self.feature_generator = Sequential(
             nn.Upsample(size=(32000,), mode='linear', align_corners=True),
-            nn.Conv1d(n_input_channels, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
-            nn.Conv1d(256, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
+            nn.Conv1d(n_input_channels, 64, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False), nn.PReLU(64), nn.BatchNorm1d(64, affine=False),
+            nn.Conv1d(64, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
             nn.Upsample(size=(64012,), mode='linear', align_corners=True),
-            nn.Conv1d(256, 256, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False), nn.PReLU(256), nn.BatchNorm1d(256, affine=False),
-            nn.Conv1d(256, n_output_channels, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False),
+            nn.Conv1d(256, 1024, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False), nn.PReLU(1024), nn.BatchNorm1d(1024, affine=False),
+            nn.Conv1d(1024, n_output_channels, kernel_size=(7,), stride=(1,), dilation=(1,), bias=False),
         )
 
     def forward(self, x):

@@ -80,7 +80,7 @@ def experiment(device=torch.device("cpu")):
             # Train the generator
             # We invert the labels here and don't train the discriminator because we want the generator
             # to make things the discriminator classifies as true.
-            generator_discriminator_out = discriminator(torch.ones((x_train.shape[0], 1, 64000), device=device))  # generated_data)
+            generator_discriminator_out = discriminator(generated_data)
             generator_loss = loss(generator_discriminator_out, true_labels)
             generator_loss.backward()
             generator_optimizer.step()
@@ -98,7 +98,7 @@ def experiment(device=torch.device("cpu")):
             # t0 = time.time()
 
             # add .detach() here think about this
-            generator_discriminator_out = discriminator(torch.ones((x_train.shape[0], 1, 64000), device=device))#generated_data.detach())
+            generator_discriminator_out = discriminator(generated_data.detach())
             generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
             discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
             discriminator_loss.backward()

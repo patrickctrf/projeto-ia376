@@ -1,4 +1,5 @@
 import csv
+import time
 
 import torch
 from torch.cuda.amp import GradScaler, autocast
@@ -58,6 +59,7 @@ def experiment(device=torch.device("cpu")):
     w.writerow(["epoch", "training_loss"])
     tqdm_bar_epoch = tqdm(range(epochs))
     tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
+    tqdm_bar_epoch.set_description("epoch: 0. ")
     for i in tqdm_bar_epoch:
         total_generator_loss = 0
         generator.train()
@@ -68,12 +70,15 @@ def experiment(device=torch.device("cpu")):
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
             fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
 
+            # t0 = time.time()
+
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
             with autocast(use_amp):
                 generated_data = generator(x_train)
 
-                # print("check0")
+                # print("generator_output: ", time.time() - t0)
+                # t0 = time.time()
 
                 # Train the generator
                 # We invert the labels here and don't train the discriminator because we want the generator
@@ -84,7 +89,8 @@ def experiment(device=torch.device("cpu")):
             generator_scaler.step(generator_optimizer)
             generator_scaler.update()
 
-            # print("check1")
+            # print("generator_backward: ", time.time() - t0)
+            # t0 = time.time()
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
@@ -92,7 +98,8 @@ def experiment(device=torch.device("cpu")):
                 true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
                 true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
-                # print("check2")
+                # print("discriminator_output: ", time.time() - t0)
+                # t0 = time.time()
 
                 # add .detach() here think about this
                 generator_discriminator_out = discriminator(generated_data.detach())
@@ -102,13 +109,13 @@ def experiment(device=torch.device("cpu")):
             discriminator_scaler.step(discriminator_optimizer)
             discriminator_scaler.update()
 
-            # print("check3")
+            # print("discriminator_backward: ", time.time() - t0)
 
-            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}')
+            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.detach().item():15.15f}')
             total_generator_loss += generator_loss.detach().item()
 
         total_generator_loss /= len(train_dataloader)
-        tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:5.5f}')
+        tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:15.15f}')
         w.writerow([i, total_generator_loss])
         f.flush()
 
@@ -122,6 +129,14 @@ def experiment(device=torch.device("cpu")):
             discriminator.eval()
             torch.save(generator, "best_discriminator.pth")
             torch.save(generator.state_dict(), "best_discriminator_state_dict.pth")
+
+        # Save everything after each epoch
+        generator.eval()
+        torch.save(generator, "generator.pth")
+        torch.save(generator.state_dict(), "generator_state_dict.pth")
+        discriminator.eval()
+        torch.save(generator, "discriminator.pth")
+        torch.save(generator.state_dict(), "discriminator_state_dict.pth")
     f.close()
 
 

@@ -32,8 +32,8 @@ class Discriminator1D(nn.Module):
 
         self.feature_extractor = Sequential(
             nn.Conv1d(1, 64, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(64), nn.BatchNorm1d(64),
-            nn.Conv1d(64, 256, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(128), nn.BatchNorm1d(128),
-            nn.Conv1d(256, 512, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(256), nn.BatchNorm1d(256),
+            nn.Conv1d(64, 256, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(256), nn.BatchNorm1d(256),
+            nn.Conv1d(256, 512, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(512), nn.BatchNorm1d(512),
             nn.Conv1d(512, n_output_channels, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(n_output_channels), nn.BatchNorm1d(n_output_channels),
         )
 

@@ -91,7 +91,7 @@ def experiment(device=torch.device("cpu")):
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
 
-            true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
+            true_discriminator_out = discriminator(y_train)
             true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
             # print("discriminator_output: ", time.time() - t0)
@@ -100,6 +100,7 @@ def experiment(device=torch.device("cpu")):
             # add .detach() here think about this
             generator_discriminator_out = discriminator(generated_data.detach())
             generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
+
             discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
             discriminator_loss.backward()
             discriminator_optimizer.step()
@@ -126,16 +127,16 @@ def experiment(device=torch.device("cpu")):
             torch.save(generator, "best_generator.pth")
             torch.save(generator.state_dict(), "best_generator_state_dict.pth")
             discriminator.eval()
-            torch.save(generator, "best_discriminator.pth")
-            torch.save(generator.state_dict(), "best_discriminator_state_dict.pth")
+            torch.save(discriminator, "best_discriminator.pth")
+            torch.save(discriminator.state_dict(), "best_discriminator_state_dict.pth")
 
         # Save everything after each epoch
         generator.eval()
         torch.save(generator, "generator.pth")
         torch.save(generator.state_dict(), "generator_state_dict.pth")
         discriminator.eval()
-        torch.save(generator, "discriminator.pth")
-        torch.save(generator.state_dict(), "discriminator_state_dict.pth")
+        torch.save(discriminator, "discriminator.pth")
+        torch.save(discriminator.state_dict(), "discriminator_state_dict.pth")
     f.close()
 
 

@@ -8,6 +8,8 @@ from scipy.io import wavfile
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
+from ptk.utils import DataManager
+
 
 class NsynthDatasetTimeSeries(Dataset):
 
@@ -58,8 +60,8 @@ class NsynthDatasetTimeSeries(Dataset):
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
         # Sendo y == (sample_de_audio, one hot do timbre, one hot das notas)
-        return torch.cat((torch.normal(mean=0, std=0.5, size=(9, self.noise_length)), instr_fmly_one_hot, notas_one_hot), dim=0), \
-               torch.tensor(sample_audio_array)
+        return torch.cat((torch.normal(mean=0, std=0.5, size=(9, self.noise_length)), instr_fmly_one_hot, notas_one_hot), dim=0).detach(), \
+               torch.tensor(sample_audio_array).detach()
         # torch.cat((torch.tensor(sample_audio_array), instr_fmly_one_hot, notas_one_hot), dim=0)
 
     def __len__(self, ):
@@ -73,13 +75,29 @@ class NsynthDatasetTimeSeries(Dataset):
 
 
 if __name__ == '__main__':
-    dataset = NsynthDatasetTimeSeries(path="nsynth-train/", shuffle=True)
+    # dataset = NsynthDatasetTimeSeries(path="nsynth-train/", shuffle=True)
+    #
+    # x = dataset[0]
+    #
+    # dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
 
-    x = dataset[0]
+    # Train Data
 
-    dataloader = DataLoader(dataset, batch_size=256, shuffle=True, )  # num_workers=4)
+    epochs = 10
+    batch_size = 1
+    noise_length = 1
+    target_length = 64000
 
-    for sample in tqdm(dataloader):
-        print(sample)
+    device = torch.device("cpu")
+
+    train_dataset = NsynthDatasetTimeSeries(path="nsynth-train/", noise_length=noise_length)
+    # Carrega os dados em mini batches, evita memory overflow
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
+    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
+
+    x = 0
+    for sample in tqdm(train_datamanager):
+        x = x + 1
 
     x = 1

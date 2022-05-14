@@ -12,12 +12,12 @@ from ptk.utils import DataManager
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 1
+    batch_size = 32
     noise_length = 1
     target_length = 64000
 
     # Models
-    generator = Generator1D(noise_length=noise_length, target_length=target_length, n_input_channels=24, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
+    generator = Generator1D(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
     discriminator = Discriminator1D(seq_length=target_length, n_input_channels=1, n_output_channels=64, kernel_size=7, stride=1, padding=0, dilation=1)
 
     # Put in GPU (if available)
@@ -36,7 +36,7 @@ def experiment(device=torch.device("cpu")):
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=0)
+    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
 
     # # Validation Data
     # valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
@@ -46,7 +46,7 @@ def experiment(device=torch.device("cpu")):
     # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
     # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4, pin_memory=True)
     # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=0)
+    # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
 
     best_validation_loss = 999999999
     f = open("loss_log.csv", "w")
@@ -69,7 +69,7 @@ def experiment(device=torch.device("cpu")):
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
             fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
 
-            print("check0")
+            # print("check0")
 
             # Train the generator
             # We invert the labels here and don't train the discriminator because we want the generator
@@ -79,14 +79,14 @@ def experiment(device=torch.device("cpu")):
             generator_loss.backward()
             generator_optimizer.step()
 
-            print("check1")
+            # print("check1")
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
             true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
             true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
-            print("check2")
+            # print("check2")
 
             # add .detach() here think about this
             generator_discriminator_out = discriminator(generated_data.detach())
@@ -95,9 +95,9 @@ def experiment(device=torch.device("cpu")):
             discriminator_loss.backward()
             discriminator_optimizer.step()
 
-            print("check3")
+            # print("check3")
 
-            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.item():5.5f}')
+            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}')
             total_generator_loss += generator_loss.detach().item()
 
         total_generator_loss /= len(train_dataloader)
@@ -108,7 +108,7 @@ def experiment(device=torch.device("cpu")):
         # Checkpoint to best models found.
         if best_validation_loss > total_generator_loss:
             # Update the new best loss.
-            best_validation_loss = total_generator_loss.detach().item()
+            best_validation_loss = total_generator_loss
             generator.eval()
             torch.save(generator, "best_generator.pth")
             torch.save(generator.state_dict(), "best_generator_state_dict.pth")

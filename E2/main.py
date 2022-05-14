@@ -1,23 +1,25 @@
 import csv
 
 import torch
+from torch.cuda.amp import GradScaler, autocast
 from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from datasets import NsynthDatasetTimeSeries
-from models import Generator1D, Discriminator1D
+from models import Discriminator1D, Generator1DUpsampled
 from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 32
+    batch_size = 16
     noise_length = 1
     target_length = 64000
+    use_amp = True
 
     # Models
-    generator = Generator1D(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
+    generator = Generator1DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
     discriminator = Discriminator1D(seq_length=target_length, n_input_channels=1, n_output_channels=64, kernel_size=7, stride=1, padding=0, dilation=1)
 
     # Put in GPU (if available)
@@ -27,6 +29,8 @@ def experiment(device=torch.device("cpu")):
     # Optimizers
     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01)
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01)
+    generator_scaler = GradScaler()
+    discriminator_scaler = GradScaler()
 
     # loss
     loss = BCEWithLogitsLoss()
@@ -60,40 +64,41 @@ def experiment(device=torch.device("cpu")):
         discriminator.train()
         # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
         for x_train, y_train in tqdm_bar_iter:
-            # zero the gradients on each iteration
-            generator_optimizer.zero_grad()
-
-            generated_data = generator(x_train)
-
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
             fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
 
-            # print("check0")
+            # zero the gradients on each iteration
+            generator_optimizer.zero_grad()
+            with autocast(use_amp):
+                generated_data = generator(x_train)
 
-            # Train the generator
-            # We invert the labels here and don't train the discriminator because we want the generator
-            # to make things the discriminator classifies as true.
-            generator_discriminator_out = discriminator(generated_data)
-            generator_loss = loss(generator_discriminator_out, true_labels)
-            generator_loss.backward()
-            generator_optimizer.step()
+                # print("check0")
+
+                # Train the generator
+                # We invert the labels here and don't train the discriminator because we want the generator
+                # to make things the discriminator classifies as true.
+                generator_discriminator_out = discriminator(generated_data)
+                generator_loss = loss(generator_discriminator_out, true_labels)
+            generator_scaler.scale(generator_loss).backward()
+            generator_scaler.step(generator_optimizer)
 
             # print("check1")
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
-            true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
-            true_discriminator_loss = loss(true_discriminator_out, true_labels)
+            with autocast(use_amp):
+                true_discriminator_out = discriminator(y_train)  # x_train[:, 0:1])
+                true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
-            # print("check2")
+                # print("check2")
 
-            # add .detach() here think about this
-            generator_discriminator_out = discriminator(generated_data.detach())
-            generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
-            discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
-            discriminator_loss.backward()
-            discriminator_optimizer.step()
+                # add .detach() here think about this
+                generator_discriminator_out = discriminator(generated_data.detach())
+                generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
+                discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
+            discriminator_scaler.scale(discriminator_loss).backward()
+            discriminator_scaler.step(discriminator_optimizer)
 
             # print("check3")
 

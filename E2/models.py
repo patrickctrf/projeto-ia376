@@ -25,7 +25,7 @@ class Generator1DUpsampled(nn.Module):
 
 
 class Discriminator1D(nn.Module):
-    def __init__(self, seq_length=64000, n_input_channels=24, n_output_channels=2048,
+    def __init__(self, seq_length=64000, n_input_channels=24, n_output_channels=1024,
                  kernel_size=7, stride=1, padding=0, dilation=1,
                  bias=False):
         super().__init__()
@@ -34,7 +34,7 @@ class Discriminator1D(nn.Module):
             nn.Conv1d(1, 64, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(64), nn.BatchNorm1d(64),
             nn.Conv1d(64, 256, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(128), nn.BatchNorm1d(128),
             nn.Conv1d(256, 512, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(256), nn.BatchNorm1d(256),
-            nn.Conv1d(1024, n_output_channels, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(n_output_channels), nn.BatchNorm1d(n_output_channels),
+            nn.Conv1d(512, n_output_channels, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(n_output_channels), nn.BatchNorm1d(n_output_channels),
         )
 
         self.pooling = AdaptiveAvgPool1d(1)

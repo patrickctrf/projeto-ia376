@@ -34,7 +34,7 @@ class Discriminator1D(nn.Module):
             nn.Conv1d(1, 256, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(256), nn.BatchNorm1d(256),
             nn.Conv1d(256, 256, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(256), nn.BatchNorm1d(256),
             nn.Conv1d(256, 256, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(256), nn.BatchNorm1d(256),
-            nn.Conv1d(512, n_output_channels, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(n_output_channels), nn.BatchNorm1d(n_output_channels),
+            nn.Conv1d(256, n_output_channels, kernel_size=(7,), stride=(3,), dilation=(1,), bias=True), nn.PReLU(n_output_channels), nn.BatchNorm1d(n_output_channels),
         )
 
         self.pooling = AdaptiveAvgPool1d(1)

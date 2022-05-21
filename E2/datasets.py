@@ -37,11 +37,11 @@ class NsynthDatasetTimeSeries(Dataset):
         self.summary_df = pd.DataFrame(list(summary_dict.values()))
         # self.summary_df = pd.get_dummies(self.summary_df, columns=["instrument_family_str", ])
 
-        self.shuffle_array = np.arange(self.summary_df.shape[0])
-        if shuffle is True: np.random.shuffle(self.shuffle_array)
+        self.shuffle_array = torch.arange(self.summary_df.shape[0])
+        if shuffle is True: self.shuffle_array = torch.randperm(self.summary_df.shape[0])
 
     def __getitem__(self, index):
-        idx = self.shuffle_array[index]
+        idx = self.shuffle_array[index].item()
 
         sample_info = self.summary_df.loc[idx]
 

@@ -80,8 +80,59 @@ class Generator1DTransposed(nn.Module):
             nn.ConvTranspose1d(8 * n_filters, 8 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32000
             nn.Tanh(),
             nn.ConvTranspose1d(8 * n_filters, 9 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64000
-            # nn.Tanh(),
+            nn.Tanh(),
             nn.Conv1d(9 * n_filters, 1, (1,), bias=bias),  # L=64000
+        )
+
+    def forward(self, x):
+        return self.feature_generator(x).view(-1, 1, self.target_length)
+
+
+class ResLayer(nn.Module):
+    def __init__(self, n_input_channels=6,
+                 kernel_size=7, stride=1, padding=0, dilation=1,
+                 groups=1, bias=True, padding_mode='zeros'):
+        """
+    ResNet-like block, receives as arguments the same that PyTorch's Conv1D
+    module.
+        """
+        super(ResLayer, self).__init__()
+
+        self.conv = Conv1d(n_input_channels, n_input_channels, kernel_size,
+                           stride, 'same', dilation,
+                           groups, bias, padding_mode)
+
+    def forward(self, input_seq):
+        return self.conv(input_seq) + input_seq
+
+
+class Generator1DUpsampled(nn.Module):
+    def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
+                 kernel_size=7, stride=1, padding=0, dilation=1,
+                 bias=False):
+        super().__init__()
+        self.target_length = target_length
+
+        n_filters = 256
+
+        self.feature_generator = Sequential(
+            nn.Conv1d(n_input_channels, n_filters, kernel_size=(3,), stride=(1,), dilation=(1,), padding=(2,), bias=bias), nn.Tanh(),
+            nn.Upsample(size=(8,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(32,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(128,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(1024,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(4096,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(16384,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(64000,), mode='linear', align_corners=True),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            nn.Upsample(size=(64000,), mode='linear', align_corners=True),
+            nn.Conv1d(n_filters, n_output_channels, kernel_size=(1,), stride=(1,), dilation=(1,), padding=(0,), bias=bias),
         )
 
     def forward(self, x):
@@ -120,28 +171,6 @@ class ResBlock(nn.Module):
 
     def forward(self, input_seq):
         return self.feature_extractor(input_seq) + self.skip_connection(input_seq)
-
-
-class Generator1DUpsampled(nn.Module):
-    def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
-                 kernel_size=7, stride=1, padding=0, dilation=1,
-                 bias=False):
-        super().__init__()
-        self.target_length = target_length
-
-        n_filters = 32
-
-        self.feature_generator = Sequential(
-            nn.Upsample(size=(32000,), mode='linear', align_corners=True),
-            nn.Conv1d(n_input_channels, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
-            nn.Conv1d(256, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
-            nn.Upsample(size=(64004,), mode='linear', align_corners=True),
-            nn.Conv1d(256, 256, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias), nn.Tanh(),
-            nn.Conv1d(256, n_output_channels, kernel_size=(3,), stride=(1,), dilation=(1,), bias=bias),
-        )
-
-    def forward(self, x):
-        return self.feature_generator(x).view(-1, 1, self.target_length)
 
 
 class PrintLayer(nn.Module):

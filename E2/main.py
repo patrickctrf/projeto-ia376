@@ -20,7 +20,7 @@ def experiment(device=torch.device("cpu")):
     target_length = 64000
 
     # Models
-    generator = Generator1DTransposed(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    generator = Generator1DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
     discriminator = Discriminator1D(seq_length=target_length, n_input_channels=24, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
@@ -28,9 +28,8 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(generator_optimizer, T_max=1000, eta_min=1e-5)
 
     # loss
     loss = BCELoss()
@@ -56,13 +55,20 @@ def experiment(device=torch.device("cpu")):
     tqdm_bar_epoch.set_description("epoch: 0. ")
     for i in tqdm_bar_epoch:
         total_generator_loss = 0
+
         generator.train()
         discriminator.train()
+
+        # Variable LR. Restart every epoch
+        generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1000, 3000, 8000], gamma=0.1)
+        discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
+        set_lr(generator_optimizer, new_lr=0.1)
+        set_lr(discriminator_optimizer, new_lr=0.01)
+
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
         train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
-        # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
+
         tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
-        # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
         for x_train, y_train in tqdm_bar_iter:
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
@@ -120,7 +126,8 @@ def experiment(device=torch.device("cpu")):
             # print("discriminator_backward: ", time.time() - t0)
 
             # LR scheduler update
-            scheduler.step()
+            discriminator_scheduler.step()
+            generator_scheduler.step()
 
             tqdm_bar_iter.set_description(
                 f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}' +
@@ -153,6 +160,17 @@ def experiment(device=torch.device("cpu")):
         torch.save(discriminator, "discriminator.pth")
         torch.save(discriminator.state_dict(), "discriminator_state_dict.pth")
     f.close()
+
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
+
+def set_lr(optimizer, new_lr=0.01):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = new_lr
+        return
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ def experiment(device=torch.device("cpu")):
     target_length = 64000
 
     # Models
-    generator = Generator1DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    generator = Generator1DTransposed(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
     discriminator = Discriminator1D(seq_length=target_length, n_input_channels=24, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
@@ -60,7 +60,7 @@ def experiment(device=torch.device("cpu")):
         discriminator.train()
 
         # Variable LR. Restart every epoch
-        generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1000, 3000, 8000], gamma=0.1)
+        generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, 25000], gamma=0.1)
         discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
         set_lr(generator_optimizer, new_lr=0.1)
         set_lr(discriminator_optimizer, new_lr=0.01)

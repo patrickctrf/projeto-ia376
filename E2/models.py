@@ -46,42 +46,42 @@ class Generator1DTransposed(nn.Module):
         super().__init__()
         self.target_length = target_length
 
-        n_filters = 32
+        n_filters = 256
 
         self.feature_generator = Sequential(
             nn.ConvTranspose1d(n_input_channels, 1 * n_filters, kernel_size=(4,), stride=(1,), padding=(1,), bias=bias),  # L=2
             nn.Tanh(),
-            nn.ConvTranspose1d(1 * n_filters, 2 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=4
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=4
             nn.Tanh(),
-            nn.ConvTranspose1d(2 * n_filters, 2 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=8
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=8
             nn.Tanh(),
-            nn.ConvTranspose1d(2 * n_filters, 3 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=16
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=16
             nn.Tanh(),
-            nn.ConvTranspose1d(3 * n_filters, 3 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32
             nn.Tanh(),
-            nn.ConvTranspose1d(3 * n_filters, 4 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64
             nn.Tanh(),
-            nn.ConvTranspose1d(4 * n_filters, 4 * n_filters, kernel_size=(5,), stride=(2,), padding=(3,), bias=bias),  # L=125
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(5,), stride=(2,), padding=(3,), bias=bias),  # L=125
             nn.Tanh(),
-            nn.ConvTranspose1d(4 * n_filters, 5 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=250
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=250
             nn.Tanh(),
-            nn.ConvTranspose1d(5 * n_filters, 5 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=500
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=500
             nn.Tanh(),
-            nn.ConvTranspose1d(5 * n_filters, 6 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=1000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=1000
             nn.Tanh(),
-            nn.ConvTranspose1d(6 * n_filters, 6 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=2000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=2000
             nn.Tanh(),
-            nn.ConvTranspose1d(6 * n_filters, 7 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=4000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=4000
             nn.Tanh(),
-            nn.ConvTranspose1d(7 * n_filters, 7 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=8000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=8000
             nn.Tanh(),
-            nn.ConvTranspose1d(7 * n_filters, 8 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=16000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=16000
             nn.Tanh(),
-            nn.ConvTranspose1d(8 * n_filters, 8 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=32000
             nn.Tanh(),
-            nn.ConvTranspose1d(8 * n_filters, 9 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64000
-            nn.Tanh(),
-            nn.Conv1d(9 * n_filters, 1, (1,), bias=bias),  # L=64000
+            nn.ConvTranspose1d(1 * n_filters, 1 * n_filters, kernel_size=(4,), stride=(2,), padding=(1,), bias=bias),  # L=64000
+            # nn.Tanh(),
+            nn.Conv1d(1 * n_filters, 1, (1,), bias=bias),  # L=64000
         )
 
     def forward(self, x):

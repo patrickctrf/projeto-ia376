@@ -4,6 +4,7 @@ import time
 import torch
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn import BCEWithLogitsLoss, BCELoss, CrossEntropyLoss, MSELoss
+from torch.profiler import profile, record_function, ProfilerActivity
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -14,13 +15,13 @@ from ptk.utils import DataManager
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 1
+    batch_size = 8
     noise_length = 1
     target_length = 64000
 
     # Models
     generator = Generator1DTransposed(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1)
-    discriminator = Discriminator1D(seq_length=target_length, n_input_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    discriminator = Discriminator1D(seq_length=target_length, n_input_channels=24, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
     generator.to(device)
@@ -34,7 +35,7 @@ def experiment(device=torch.device("cpu")):
     loss = BCELoss()
 
     # Train Data
-    train_dataset = NsynthDatasetTimeSeries(path="nsynth-train/", noise_length=noise_length)
+    train_dataset = NsynthDatasetTimeSeries(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
@@ -58,7 +59,6 @@ def experiment(device=torch.device("cpu")):
         discriminator.train()
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
         train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
-        # # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
         # valid_datamanager = DataManager(valid_dataloader, device=device, buffer_size=1)
         tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
         # for (x_train, y_train), (x_valid, y_valid) in tqdm(zip(train_datamanager, valid_datamanager), total=len(train_dataloader)):
@@ -80,10 +80,14 @@ def experiment(device=torch.device("cpu")):
             # Train the generator
             # We invert the labels here and don't train the discriminator because we want the generator
             # to make things the discriminator classifies as true.
-            generator_discriminator_out = discriminator(generated_data)
+            generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 1:, :]), dim=1))
             generator_loss = loss(generator_discriminator_out, true_labels)
             generator_loss.backward()
             generator_optimizer.step()
+
+            # just free memory
+            generator_loss = generator_loss.detach()
+            generated_data = generated_data.detach()
 
             # print("generator_backward: ", time.time() - t0)
             # t0 = time.time()
@@ -98,20 +102,27 @@ def experiment(device=torch.device("cpu")):
             # t0 = time.time()
 
             # add .detach() here think about this
-            generator_discriminator_out = discriminator(generated_data.detach())
+            generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 1:, :]), dim=1))
             generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
 
             discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
             discriminator_loss.backward()
             discriminator_optimizer.step()
 
-            # print("gerador: ", generated_data)
-            # print("discriminator_gen: ", generator_discriminator_out)
-            # print("discriminator_real: ", true_discriminator_out)
+            # just free memory
+            generator_discriminator_out = generator_discriminator_out.detach()
+            generator_discriminator_loss = generator_discriminator_loss.detach()
+            true_discriminator_out = true_discriminator_out.detach()
+            true_discriminator_loss = true_discriminator_loss.detach()
+            discriminator_loss = discriminator_loss.detach()
 
             # print("discriminator_backward: ", time.time() - t0)
 
-            tqdm_bar_iter.set_description(f'mini-batch generator_loss: {generator_loss.detach().item():15.15f}')
+            tqdm_bar_iter.set_description(
+                f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}' +
+                f'. discriminator_gen: {generator_discriminator_out.detach().mean():5.5f}' +
+                f'. discriminator_real: {true_discriminator_out.detach().mean():5.5f}'
+            )
             total_generator_loss += generator_loss.detach().item()
 
         total_generator_loss /= len(train_dataloader)

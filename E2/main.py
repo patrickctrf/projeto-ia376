@@ -30,6 +30,7 @@ def experiment(device=torch.device("cpu")):
     # Optimizers
     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01, )
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(generator_optimizer, T_max=1000, eta_min=1e-5)
 
     # loss
     loss = BCELoss()
@@ -117,6 +118,9 @@ def experiment(device=torch.device("cpu")):
             discriminator_loss = discriminator_loss.detach()
 
             # print("discriminator_backward: ", time.time() - t0)
+
+            # LR scheduler update
+            scheduler.step()
 
             tqdm_bar_iter.set_description(
                 f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}' +

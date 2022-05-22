@@ -46,7 +46,7 @@ class Generator1DTransposed(nn.Module):
         super().__init__()
         self.target_length = target_length
 
-        n_filters = 64
+        n_filters = 32
 
         self.feature_generator = Sequential(
             nn.ConvTranspose1d(n_input_channels, 1 * n_filters, kernel_size=(4,), stride=(1,), padding=(1,), bias=bias),  # L=2

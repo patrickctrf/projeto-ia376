@@ -8,6 +8,7 @@ from torch.profiler import profile, record_function, ProfilerActivity
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from losses import *
 from datasets import NsynthDatasetTimeSeries
 from models import *
 from ptk.utils import DataManager
@@ -29,7 +30,7 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1.0, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
@@ -67,7 +68,7 @@ def experiment(device=torch.device("cpu")):
         # Variable LR. Restart every epoch
         generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)  # 25000
         discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
-        set_lr(generator_optimizer, new_lr=1.0)
+        set_lr(generator_optimizer, new_lr=0.1)
         set_lr(discriminator_optimizer, new_lr=0.01)
 
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
@@ -93,7 +94,7 @@ def experiment(device=torch.device("cpu")):
                 # Train the generator
                 # We invert the labels here and don't train the discriminator because we want the generator
                 # to make things the discriminator classifies as true.
-                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 1:, :]), dim=1))
+                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 1:, ]), dim=1))
                 generator_loss = loss(generator_discriminator_out, true_labels)
 
             generator_scaler.scale(generator_loss).backward()
@@ -118,7 +119,7 @@ def experiment(device=torch.device("cpu")):
                 # t0 = time.time()
 
                 # add .detach() here think about this
-                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 1:, :]), dim=1))
+                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 1:, ]), dim=1))
                 generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
 
                 discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2

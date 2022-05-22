@@ -18,6 +18,7 @@ def experiment(device=torch.device("cpu")):
     batch_size = 8
     noise_length = 1
     target_length = 64000
+    use_amp = True
 
     # Models
     generator = Generator1DTransposed(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
@@ -28,16 +29,18 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
+    generator_scaler = GradScaler()
+    discriminator_scaler = GradScaler()
 
     # loss
-    loss = BCELoss()
+    loss = BCEWithLogitsLoss()
 
     # Train Data
     train_dataset = NsynthDatasetTimeSeries(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
     # # Validation Data
     # valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
@@ -45,7 +48,7 @@ def experiment(device=torch.device("cpu")):
     # # validacao tenho o mesmo tamanho do de treino
     # validation_batch_size = len(valid_dataset) // len(train_dataloader)
     # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
-    # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
     best_validation_loss = 999999999
     f = open("loss_log.csv", "w")
@@ -60,9 +63,9 @@ def experiment(device=torch.device("cpu")):
         discriminator.train()
 
         # Variable LR. Restart every epoch
-        generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[3500, 15000, 25000], gamma=0.1)
+        generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)  # 25000
         discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
-        set_lr(generator_optimizer, new_lr=0.01)
+        set_lr(generator_optimizer, new_lr=0.1)
         set_lr(discriminator_optimizer, new_lr=0.01)
 
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
@@ -79,18 +82,21 @@ def experiment(device=torch.device("cpu")):
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
 
-            generated_data = generator(x_train)
+            with autocast(enabled=use_amp):
+                generated_data = generator(x_train)
 
-            # print("generator_output: ", time.time() - t0)
-            # t0 = time.time()
+                # print("generator_output: ", time.time() - t0)
+                # t0 = time.time()
 
-            # Train the generator
-            # We invert the labels here and don't train the discriminator because we want the generator
-            # to make things the discriminator classifies as true.
-            generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 1:, :]), dim=1))
-            generator_loss = loss(generator_discriminator_out, true_labels)
-            generator_loss.backward()
-            generator_optimizer.step()
+                # Train the generator
+                # We invert the labels here and don't train the discriminator because we want the generator
+                # to make things the discriminator classifies as true.
+                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 1:, :]), dim=1))
+                generator_loss = loss(generator_discriminator_out, true_labels)
+
+            generator_scaler.scale(generator_loss).backward()
+            generator_scaler.step(generator_optimizer)
+            generator_scaler.update()
 
             # just free memory
             generator_loss = generator_loss.detach()
@@ -102,19 +108,22 @@ def experiment(device=torch.device("cpu")):
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
 
-            true_discriminator_out = discriminator(y_train)
-            true_discriminator_loss = loss(true_discriminator_out, true_labels)
+            with autocast(enabled=use_amp):
+                true_discriminator_out = discriminator(y_train)
+                true_discriminator_loss = loss(true_discriminator_out, true_labels)
 
-            # print("discriminator_output: ", time.time() - t0)
-            # t0 = time.time()
+                # print("discriminator_output: ", time.time() - t0)
+                # t0 = time.time()
 
-            # add .detach() here think about this
-            generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 1:, :]), dim=1))
-            generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
+                # add .detach() here think about this
+                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 1:, :]), dim=1))
+                generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
 
-            discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
-            discriminator_loss.backward()
-            discriminator_optimizer.step()
+                discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
+
+            discriminator_scaler.scale(discriminator_loss).backward()
+            discriminator_scaler.step(discriminator_optimizer)
+            discriminator_scaler.update()
 
             # just free memory
             generator_discriminator_out = generator_discriminator_out.detach()

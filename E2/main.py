@@ -29,13 +29,13 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1.0, )
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
     # loss
-    loss = BCEWithLogitsLoss()
+    loss = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetTimeSeries(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
@@ -50,12 +50,14 @@ def experiment(device=torch.device("cpu")):
     # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
     # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
+    # Log data
     best_validation_loss = 999999999
     f = open("loss_log.csv", "w")
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
     tqdm_bar_epoch = tqdm(range(epochs))
     tqdm_bar_epoch.set_description("epoch: 0. ")
+
     for i in tqdm_bar_epoch:
         total_generator_loss = 0
 
@@ -65,7 +67,7 @@ def experiment(device=torch.device("cpu")):
         # Variable LR. Restart every epoch
         generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)  # 25000
         discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
-        set_lr(generator_optimizer, new_lr=0.1)
+        set_lr(generator_optimizer, new_lr=1.0)
         set_lr(discriminator_optimizer, new_lr=0.01)
 
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)

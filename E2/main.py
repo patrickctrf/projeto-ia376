@@ -28,7 +28,7 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1.0, )
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
 
     # loss
@@ -62,7 +62,7 @@ def experiment(device=torch.device("cpu")):
         # Variable LR. Restart every epoch
         generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, 25000], gamma=0.1)
         discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
-        set_lr(generator_optimizer, new_lr=0.1)
+        set_lr(generator_optimizer, new_lr=1.0)
         set_lr(discriminator_optimizer, new_lr=0.01)
 
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)

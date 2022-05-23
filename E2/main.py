@@ -9,21 +9,21 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from losses import *
-from datasets import NsynthDatasetTimeSeries
+from datasets import *
 from models import *
 from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
     epochs = 10
-    batch_size = 8
+    batch_size = 16
     noise_length = 1
     target_length = 64000
     use_amp = True
 
     # Models
-    generator = Generator1DTransposed(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
-    discriminator = Discriminator1D(seq_length=target_length, n_input_channels=24, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    generator = Generator2DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    discriminator = Discriminator2D(seq_length=target_length, n_input_channels=25, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
     generator.to(device)
@@ -36,10 +36,10 @@ def experiment(device=torch.device("cpu")):
     discriminator_scaler = GradScaler()
 
     # loss
-    loss = MSELoss()
+    loss = HyperbolicLoss()
 
     # Train Data
-    train_dataset = NsynthDatasetTimeSeries(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
+    train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
@@ -94,7 +94,7 @@ def experiment(device=torch.device("cpu")):
                 # Train the generator
                 # We invert the labels here and don't train the discriminator because we want the generator
                 # to make things the discriminator classifies as true.
-                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 1:, ]), dim=1))
+                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 2:, ]), dim=1))
                 generator_loss = loss(generator_discriminator_out, true_labels)
 
             generator_scaler.scale(generator_loss).backward()
@@ -119,7 +119,7 @@ def experiment(device=torch.device("cpu")):
                 # t0 = time.time()
 
                 # add .detach() here think about this
-                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 1:, ]), dim=1))
+                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 2:, ]), dim=1))
                 generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
 
                 discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2

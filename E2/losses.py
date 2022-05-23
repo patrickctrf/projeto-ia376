@@ -9,7 +9,7 @@ class ExpSquareLoss(nn.Module):
         return ((y - y_hat) ** 2).exp().mean()
 
 
-class QuocienteLoss(nn.Module):
+class HyperbolicLoss(nn.Module):
     def __init__(self, epsilon=1e-6, *args, **kwargs):
         super().__init__()
         self.epsilon = epsilon + 1

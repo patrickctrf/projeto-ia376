@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+# import tensorflow as tf
 import torch
 from matplotlib import pyplot as plt
 from scipy import signal
@@ -12,6 +12,8 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 from ptk.utils import DataManager
+
+__all__ = ["NsynthDatasetTimeSeries", "NsynthDatasetFourier"]
 
 
 class NsynthDatasetFourier(Dataset):
@@ -49,7 +51,7 @@ class NsynthDatasetFourier(Dataset):
         sample_info = self.summary_df.loc[idx]
 
         sample_audio_array = wavfile.read(os.path.join(self.path, "audio", sample_info["note_str"]) + ".wav")[1] / 1.0
-        sample_audio_array = self._scale_data(sample_audio_array)
+        # sample_audio_array = _scale_data(sample_audio_array)
         sample_audio_array = np.pad(sample_audio_array, [(700, 700), ], mode='constant')
 
         # espectro = tf.signal.stft(
@@ -85,7 +87,9 @@ class NsynthDatasetFourier(Dataset):
         notas_one_hot = torch.zeros(((len(self.notas_indices),) + espectro.shape))
 
         # Decompoe o espectro em magnitude e fase (angulo).
-        magnitude_espectro = np.log10(np.abs(espectro))
+        amplitude_espectro = np.abs(espectro)
+        amplitude_espectro[amplitude_espectro == 0] = 1e-6
+        magnitude_espectro = np.log10(amplitude_espectro)
         phase_espectro = np.angle(espectro)
 
         # Setamos como 1 o elemento daquela familia (one hot)
@@ -97,17 +101,19 @@ class NsynthDatasetFourier(Dataset):
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
         # Sendo y == (sample_de_audio,)
-        return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0], notas_one_hot[:, 0:1, 0]), dim=0).detach(), \
-               torch.cat((torch.tensor([magnitude_espectro]), torch.tensor([phase_espectro]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
+        return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
+               torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
 
     def __len__(self, ):
         return self.summary_df.shape[0]
 
-    def _scale_data(self, array, means=0.0, stds=32768.0 / 2):
-        return (array - means) / stds
 
-    def _unscale_data(self, array, means=0.0, stds=32768.0 / 2):
-        return array * stds + means
+def _scale_data(array, means=0.0, stds=32768.0 / 2):
+    return (array - means) / stds
+
+
+def _unscale_data(array, means=0.0, stds=32768.0 / 2):
+    return array * stds + means
 
 
 class NsynthDatasetTimeSeries(Dataset):
@@ -145,7 +151,7 @@ class NsynthDatasetTimeSeries(Dataset):
         sample_info = self.summary_df.loc[idx]
 
         sample_audio_array = wavfile.read(os.path.join(self.path, "audio", sample_info["note_str"]) + ".wav")[1]
-        sample_audio_array = self._scale_data(sample_audio_array.reshape(1, -1), means=0.0, stds=300.0)
+        sample_audio_array = _scale_data(sample_audio_array.reshape(1, -1))
 
         instr_fmly_one_hot = torch.zeros((len(self.instr_fmly_dict.keys()), self.noise_length))
         notas_one_hot = torch.zeros((len(self.notas_indices), self.noise_length))
@@ -164,12 +170,6 @@ class NsynthDatasetTimeSeries(Dataset):
 
     def __len__(self, ):
         return self.summary_df.shape[0]
-
-    def _scale_data(self, array, means=0.0, stds=3000.0):
-        return (array - means) / stds
-
-    def _unscale_data(self, array, means=0.0, stds=3000.0):
-        return array * stds + means
 
 
 if __name__ == '__main__':

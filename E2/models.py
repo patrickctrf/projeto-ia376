@@ -1,6 +1,71 @@
 from torch import nn
 from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, AdaptiveMaxPool1d
 
+__all__ = ["Generator2DUpsampled", "Generator1DUpsampled", "Generator1DTransposed", "Discriminator2D", "Discriminator1D"]
+
+
+class Generator2DUpsampled(nn.Module):
+    def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
+                 kernel_size=7, stride=1, padding=0, dilation=1,
+                 bias=False):
+        super().__init__()
+        self.target_length = target_length
+
+        n_filters = 256
+
+        self.feature_generator = Sequential(
+            nn.Conv2d(n_input_channels, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding=(2, 9), bias=bias), nn.Tanh(),
+            nn.Upsample(size=(4, 32), mode='bilinear', align_corners=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Upsample(size=(8, 64), mode='bilinear', align_corners=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Upsample(size=(16, 128), mode='bilinear', align_corners=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Upsample(size=(32, 256), mode='bilinear', align_corners=True),
+            nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Upsample(size=(64, 512), mode='bilinear', align_corners=True),
+            nn.Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Upsample(size=(128, 1024), mode='bilinear', align_corners=True),
+            nn.Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias), nn.Tanh(),
+            nn.Conv2d(32, 2, kernel_size=(1, 1), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
+        )
+
+    def forward(self, x):
+        return self.feature_generator(x).transpose(2, 3)
+
+
+class Discriminator2D(nn.Module):
+    def __init__(self, seq_length=64000, n_input_channels=24,
+                 kernel_size=7, stride=1, padding=0, dilation=1, bias=False):
+        super().__init__()
+
+        n_output_channels = 256
+
+        self.feature_extractor = Sequential(
+            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias), nn.Tanh(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+        )
+
+        self.pooling = nn.AdaptiveMaxPool2d(1)
+
+        self.linear = Linear(n_output_channels, 1, bias=bias)
+
+        self.activation = Sigmoid()
+
+    def forward(self, x):
+        return self.activation(self.linear(self.pooling(self.feature_extractor(x)).flatten(start_dim=1)))
+
 
 class Discriminator1D(nn.Module):
     def __init__(self, seq_length=64000, n_input_channels=24,

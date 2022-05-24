@@ -89,7 +89,7 @@ class NsynthDatasetFourier(Dataset):
         # Decompoe o espectro em magnitude e fase (angulo).
         amplitude_espectro = np.abs(espectro)
         amplitude_espectro[amplitude_espectro == 0] = 1e-6
-        magnitude_espectro = np.log10(np.abs(amplitude_espectro))
+        magnitude_espectro = np.log10(amplitude_espectro)
         phase_espectro = np.angle(espectro)
 
         # Setamos como 1 o elemento daquela familia (one hot)

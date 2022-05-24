@@ -36,20 +36,12 @@ def experiment(device=torch.device("cpu")):
     discriminator_scaler = GradScaler()
 
     # loss
-    loss = HyperbolicLoss()
+    loss = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
-
-    # # Validation Data
-    # valid_dataset = NsynthDatasetTimeSeries(path="nsynth-valid/", noise_length=noise_length)
-    # # O tamanho do mini batch de validacao tem que ser tal que o dataloader de
-    # # validacao tenho o mesmo tamanho do de treino
-    # validation_batch_size = len(valid_dataset) // len(train_dataloader)
-    # assert validation_batch_size > 0, 'Train dataloader is bigger than validation dataset'
-    # valid_dataloader = DataLoader(valid_dataset, batch_size=validation_batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
     # Log data
     best_validation_loss = 999999999
@@ -59,6 +51,9 @@ def experiment(device=torch.device("cpu")):
     tqdm_bar_epoch = tqdm(range(epochs))
     tqdm_bar_epoch.set_description("epoch: 0. ")
 
+    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=5000, eta_min=0.00001)
+    set_lr(discriminator_optimizer, new_lr=0.01)
+
     for i in tqdm_bar_epoch:
         total_generator_loss = 0
 
@@ -67,9 +62,8 @@ def experiment(device=torch.device("cpu")):
 
         # Variable LR. Restart every epoch
         generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)  # 25000
-        discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
+        # discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
         set_lr(generator_optimizer, new_lr=0.1)
-        set_lr(discriminator_optimizer, new_lr=0.01)
 
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
         train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)

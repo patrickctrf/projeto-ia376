@@ -45,10 +45,10 @@ class Discriminator2D(nn.Module):
                  kernel_size=7, stride=1, padding=0, dilation=1, bias=False):
         super().__init__()
 
-        n_output_channels = 32
+        n_output_channels = 256
 
         self.feature_extractor = Sequential(
-            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias), nn.Tanh(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
             nn.MaxPool2d(2, 2),
@@ -63,17 +63,8 @@ class Discriminator2D(nn.Module):
 
         self.activation = Sigmoid()
 
-        self.aux = Sequential(
-            nn.Flatten(),
-            Linear(64000, 10),
-            nn.LeakyReLU(),
-            Linear(10, 1),
-            nn.Sigmoid(),
-        )
-
     def forward(self, x):
         return self.activation(self.linear(self.pooling(self.feature_extractor(x)).flatten(start_dim=1)))
-        # return self.aux(x)
 
 
 class Discriminator1D(nn.Module):

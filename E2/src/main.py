@@ -78,7 +78,7 @@ def experiment(device=torch.device("cpu")):
 
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
-
+            discriminator.eval()
             with autocast(enabled=use_amp):
                 generated_data = generator(x_train)
 
@@ -104,7 +104,7 @@ def experiment(device=torch.device("cpu")):
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
-
+            discriminator.train()
             with autocast(enabled=use_amp):
                 true_discriminator_out = discriminator(y_train)
                 true_discriminator_loss = loss(true_discriminator_out, true_labels)

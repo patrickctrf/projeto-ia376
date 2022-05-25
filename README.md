@@ -1,6 +1,7 @@
 # Projeto IA376L -  Deep Learning Aplicado a Síntese de Sinais
-# `<Síntese de timbres de instrumentos musicais através de Redes Adversárias Generativas>`
-# `<Synthesis of musical instrument timbres through Generative Adversary Networks>`
+# `<Estudo de caso: Geração de áudio musical através de GAN, LSTM e Transformer>`
+# `<Case study: Generation of musical audio through GAN,   LSTM and Transformer>`
+
 
 # Repositório para as Entregas:
 >

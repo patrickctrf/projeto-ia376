@@ -5,7 +5,7 @@ import torch
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn import BCEWithLogitsLoss, BCELoss, CrossEntropyLoss, MSELoss
 from torch.profiler import profile, record_function, ProfilerActivity
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from losses import *
@@ -15,11 +15,11 @@ from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    epochs = 10
     batch_size = 16
     noise_length = 1
     target_length = 64000
     use_amp = True
+    max_examples = 150_000
 
     # Models
     generator = Generator2DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
@@ -35,41 +35,37 @@ def experiment(device=torch.device("cpu")):
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
+    # Variable LR.
+    generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(generator_optimizer, 'min', patience=15000 // batch_size, factor=0.1, min_lr=1e-4, verbose=True)
+    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=1500 // batch_size, eta_min=0.0000001)
+    # generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)
+
     # loss
     loss = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
+    # train_dataset = Subset(train_dataset, [0, 1]) # dummy dataset for testing script
     # Carrega os dados em mini batches, evita memory overflow
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # Log data
-    best_validation_loss = 999999999
+    total_generator_loss = best_loss = 9999
     f = open("loss_log.csv", "w")
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
-    tqdm_bar_epoch = tqdm(range(epochs))
+    tqdm_bar_epoch = tqdm(range(max_examples))
     tqdm_bar_epoch.set_description("epoch: 0. ")
+    last_checkpoint = 0
 
-    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=5000, eta_min=0.00001)
-    set_lr(discriminator_optimizer, new_lr=0.01)
-
-    for i in tqdm_bar_epoch:
-        total_generator_loss = 0
-
+    n_examples = 0
+    while n_examples < max_examples:
         generator.train()
         discriminator.train()
 
-        # Variable LR. Restart every epoch
-        generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)  # 25000
-        # discriminator_scheduler = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=0.99)
-        set_lr(generator_optimizer, new_lr=0.1)
-
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
         train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
-
-        tqdm_bar_iter = tqdm(train_datamanager, total=len(train_dataloader))
-        for x_train, y_train in tqdm_bar_iter:
+        for x_train, y_train in train_datamanager:
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
             fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
@@ -95,10 +91,6 @@ def experiment(device=torch.device("cpu")):
             generator_scaler.step(generator_optimizer)
             generator_scaler.update()
 
-            # just free memory
-            generator_loss = generator_loss.detach()
-            generated_data = generated_data.detach()
-
             # print("generator_backward: ", time.time() - t0)
             # t0 = time.time()
 
@@ -122,41 +114,39 @@ def experiment(device=torch.device("cpu")):
             discriminator_scaler.step(discriminator_optimizer)
             discriminator_scaler.update()
 
-            # just free memory
-            generator_discriminator_out = generator_discriminator_out.detach()
-            generator_discriminator_loss = generator_discriminator_loss.detach()
-            true_discriminator_out = true_discriminator_out.detach()
-            true_discriminator_loss = true_discriminator_loss.detach()
-            discriminator_loss = discriminator_loss.detach()
-
             # print("discriminator_backward: ", time.time() - t0)
 
             # LR scheduler update
             discriminator_scheduler.step()
-            generator_scheduler.step()
+            generator_scheduler.step(total_generator_loss)
 
-            tqdm_bar_iter.set_description(
-                f'mini-batch generator_loss: {generator_loss.detach().item():5.5f}' +
-                f'. discriminator_gen: {generator_discriminator_out.detach().mean():5.5f}' +
-                f'. discriminator_real: {true_discriminator_out.detach().mean():5.5f}'
+            tqdm_bar_epoch.set_description(
+                f'current_generator_loss: {total_generator_loss:5.5f}' +
+                f'. disc_fake_err: {generator_discriminator_out.detach().mean():5.5f}' +
+                f'. disc_real_acc: {true_discriminator_out.detach().mean():5.5f}' +
+                f'. gen_lr: {get_lr(generator_optimizer):1.4f}' +
+                f'. disc_lr: {get_lr(discriminator_optimizer):1.6f}'
             )
-            total_generator_loss += generator_loss.detach().item()
+            tqdm_bar_epoch.update(x_train.shape[0])
 
-        total_generator_loss /= len(train_dataloader)
-        tqdm_bar_epoch.set_description(f'epoch: {i:1} generator_loss: {total_generator_loss:15.15f}')
-        w.writerow([i, total_generator_loss])
-        f.flush()
+            n_examples += x_train.shape[0]
 
-        # Checkpoint to best models found.
-        if best_validation_loss > total_generator_loss:
-            # Update the new best loss.
-            best_validation_loss = total_generator_loss
-            generator.eval()
-            torch.save(generator, "checkpoints/best_generator.pth")
-            torch.save(generator.state_dict(), "checkpoints/best_generator_state_dict.pth")
-            discriminator.eval()
-            torch.save(discriminator, "checkpoints/best_discriminator.pth")
-            torch.save(discriminator.state_dict(), "checkpoints/best_discriminator_state_dict.pth")
+            w.writerow([n_examples, generator_loss.detach().item()])
+            f.flush()
+
+            total_generator_loss = 0.9 * total_generator_loss + 0.1 * generator_loss.detach().item()
+
+            # Checkpoint to best models found.
+            if n_examples > last_checkpoint + 100 * batch_size and best_loss > total_generator_loss:
+                # Update the new best loss.
+                best_loss = total_generator_loss
+                last_checkpoint = n_examples
+                generator.eval()
+                torch.save(generator, "checkpoints/best_generator.pth")
+                torch.save(generator.state_dict(), "checkpoints/best_generator_state_dict.pth")
+                discriminator.eval()
+                torch.save(discriminator, "checkpoints/best_discriminator.pth")
+                torch.save(discriminator.state_dict(), "checkpoints/best_discriminator_state_dict.pth")
 
         # Save everything after each epoch
         generator.eval()
@@ -169,8 +159,7 @@ def experiment(device=torch.device("cpu")):
 
 
 def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
+    return optimizer.param_groups[0]['lr']
 
 
 def set_lr(optimizer, new_lr=0.01):

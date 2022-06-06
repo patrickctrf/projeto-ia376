@@ -13,8 +13,8 @@ generator = torch.load("checkpoints/best_generator.pth").to(torch.device("cpu"))
 ruido_e_classes = torch.cat(
     (
         torch.normal(mean=0, std=1.0, size=(9, 1)),
-        torch.tensor([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ]).view(-1, 1),
-        torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(-1, 1),
+        torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, ]).view(-1, 1),
+        torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(-1, 1),
     ), dim=0).view(1, 32, 1, 1)
 
 fourier_sintetizado = generator(ruido_e_classes)[0].detach().numpy()

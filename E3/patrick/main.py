@@ -15,7 +15,7 @@ from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    batch_size = 16
+    batch_size = 32
     noise_length = 1
     target_length = 64000
     use_amp = True
@@ -31,13 +31,13 @@ def experiment(device=torch.device("cpu")):
 
     # Optimizers
     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.003, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
     # Variable LR.
     generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(generator_optimizer, 'min', patience=15000 // batch_size, factor=0.1, min_lr=1e-4, verbose=True)
-    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=1500 // batch_size, eta_min=0.0000001)
+    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=1500 // batch_size, eta_min=1e-6)
     # generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)
 
     # loss
@@ -45,7 +45,7 @@ def experiment(device=torch.device("cpu")):
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
-    # train_dataset = Subset(train_dataset, [0, 1]) # dummy dataset for testing script
+    # train_dataset = Subset(train_dataset, [0, ])  # dummy dataset for testing script
     # Carrega os dados em mini batches, evita memory overflow
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
@@ -75,6 +75,7 @@ def experiment(device=torch.device("cpu")):
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
             discriminator.eval()
+            generator.train()
             with autocast(enabled=use_amp):
                 generated_data = generator(x_train)
 
@@ -97,6 +98,7 @@ def experiment(device=torch.device("cpu")):
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
             discriminator.train()
+            generator.eval()
             with autocast(enabled=use_amp):
                 true_discriminator_out = discriminator(y_train)
                 true_discriminator_loss = loss(true_discriminator_out, true_labels)
@@ -147,6 +149,7 @@ def experiment(device=torch.device("cpu")):
                 discriminator.eval()
                 torch.save(discriminator, "checkpoints/best_discriminator.pth")
                 torch.save(discriminator.state_dict(), "checkpoints/best_discriminator_state_dict.pth")
+                print("\ncheckpoint!\n")
 
         # Save everything after each epoch
         generator.eval()

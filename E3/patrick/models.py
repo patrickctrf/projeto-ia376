@@ -3,6 +3,8 @@ from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, Ada
 
 __all__ = ["Generator2DUpsampled", "Generator1DUpsampled", "Generator1DTransposed", "Discriminator2D", "Discriminator1D"]
 
+from activations import SReLU
+
 
 class Generator2DUpsampled(nn.Module):
     def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
@@ -59,6 +61,22 @@ class Discriminator2D(nn.Module):
 
         self.pooling = nn.AdaptiveMaxPool2d(1)
 
+        self.feature_extractor = Sequential(
+            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias,), nn.Tanh(),
+            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.AvgPool2d(2, 2),
+            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.AvgPool2d(2, 2),
+            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.AvgPool2d(2, 2),
+            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.AvgPool2d(2, 2),
+            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.AvgPool2d(2, 2),
+            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+        )
+        self.pooling = nn.AdaptiveAvgPool2d(1)
+
         self.linear = Linear(n_output_channels, 1, bias=bias)
 
         self.activation = Sigmoid()
@@ -94,7 +112,7 @@ class Discriminator1D(nn.Module):
         self.aux = Sequential(
             nn.Flatten(),
             Linear(64000, 10),
-            nn.LeakyReLU(),
+            SReLU(),
             Linear(10, 1),
             nn.Sigmoid(),
         )
@@ -216,22 +234,22 @@ class ResBlock(nn.Module):
 
         self.feature_extractor = \
             Sequential(
-                Conv1d(n_input_channels, n_output_channels, kernel_size,
-                       stride, kernel_size // 2 * dilation, dilation,
-                       groups, bias, padding_mode),
-                nn.LeakyReLU(),
-                nn.BatchNorm1d(n_output_channels),
-                Conv1d(n_output_channels, n_output_channels, kernel_size,
-                       stride, kernel_size // 2 * dilation,
-                       dilation, groups, bias, padding_mode),
-                nn.PReLU(num_parameters=n_output_channels),
-                nn.BatchNorm1d(n_output_channels)
+                nn.Conv2d(n_input_channels, n_output_channels, kernel_size,
+                          stride, kernel_size // 2 * dilation, dilation,
+                          groups, bias, padding_mode),
+                SReLU(),
+                nn.BatchNorm2d(n_output_channels),
+                nn.Conv2d(n_output_channels, n_output_channels, kernel_size,
+                          stride, kernel_size // 2 * dilation,
+                          dilation, groups, bias, padding_mode),
+                SReLU(),
+                nn.BatchNorm2d(n_output_channels)
             )
 
         self.skip_connection = \
             Sequential(
-                Conv1d(n_input_channels, n_output_channels, (1,),
-                       stride, padding, dilation, groups, bias, padding_mode)
+                nn.Conv2d(n_input_channels, n_output_channels, 1,
+                          stride, padding, dilation, groups, bias, padding_mode)
             )
 
     def forward(self, input_seq):

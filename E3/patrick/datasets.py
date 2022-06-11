@@ -79,8 +79,8 @@ class NsynthDatasetFourier(Dataset):
         espectro = espectro[:-1]
         f = f[:-1]
 
-        # Visualizar o espectro gerado
-        # plt.pcolormesh(t[:-1], f, np.abs(espectro_tf), vmin=0, vmax=10000, shading='gouraud')
+        # # Visualizar o espectro gerado
+        # plt.pcolormesh(t, f, np.abs(espectro), vmin=0, vmax=10000, shading='gouraud')
         # plt.show()
 
         instr_fmly_one_hot = torch.zeros(((len(self.instr_fmly_dict.keys()),) + espectro.shape))
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length, shuffle=False)
     x = train_dataset[0]
     # Carrega os dados em mini batches, evita memory overflow
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
     train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
 

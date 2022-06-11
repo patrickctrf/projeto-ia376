@@ -15,7 +15,7 @@ from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    batch_size = 32
+    batch_size = 16
     noise_length = 1
     target_length = 64000
     use_amp = True
@@ -30,18 +30,20 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.1, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.003, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
     # Variable LR.
-    generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(generator_optimizer, 'min', patience=15000 // batch_size, factor=0.1, min_lr=1e-4, verbose=True)
-    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=1500 // batch_size, eta_min=1e-6)
-    # generator_scheduler = torch.optim.lr_scheduler.MultiStepLR(generator_optimizer, milestones=[1500, 3500, 15000, ], gamma=0.1)
+    # generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(generator_optimizer, 'min', patience=15000 // batch_size, factor=0.1, min_lr=1e-4, verbose=True)
+    generator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(generator_optimizer, T_max=9000 // batch_size, eta_min=0.0)
+    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=9000 // batch_size, eta_min=0.0)
+    for i in range(9000 // batch_size):
+        discriminator_scheduler.step()
 
     # loss
-    loss = MSELoss()
+    loss = HyperbolicLoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
@@ -70,17 +72,10 @@ def experiment(device=torch.device("cpu")):
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
             fake_labels = torch.zeros((x_train.shape[0], 1), device=device)
 
-            # t0 = time.time()
-
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
-            discriminator.eval()
-            generator.train()
             with autocast(enabled=use_amp):
                 generated_data = generator(x_train)
-
-                # print("generator_output: ", time.time() - t0)
-                # t0 = time.time()
 
                 # Train the generator
                 # We invert the labels here and don't train the discriminator because we want the generator
@@ -92,19 +87,11 @@ def experiment(device=torch.device("cpu")):
             generator_scaler.step(generator_optimizer)
             generator_scaler.update()
 
-            # print("generator_backward: ", time.time() - t0)
-            # t0 = time.time()
-
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
-            discriminator.train()
-            generator.eval()
             with autocast(enabled=use_amp):
                 true_discriminator_out = discriminator(y_train)
                 true_discriminator_loss = loss(true_discriminator_out, true_labels)
-
-                # print("discriminator_output: ", time.time() - t0)
-                # t0 = time.time()
 
                 # add .detach() here think about this
                 generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 2:, ]), dim=1))
@@ -116,24 +103,22 @@ def experiment(device=torch.device("cpu")):
             discriminator_scaler.step(discriminator_optimizer)
             discriminator_scaler.update()
 
-            # print("discriminator_backward: ", time.time() - t0)
-
             # LR scheduler update
             discriminator_scheduler.step()
-            generator_scheduler.step(total_generator_loss)
+            generator_scheduler.step()
 
             tqdm_bar_epoch.set_description(
                 f'current_generator_loss: {total_generator_loss:5.5f}' +
                 f'. disc_fake_err: {generator_discriminator_out.detach().mean():5.5f}' +
                 f'. disc_real_acc: {true_discriminator_out.detach().mean():5.5f}' +
-                f'. gen_lr: {get_lr(generator_optimizer):1.4f}' +
+                f'. gen_lr: {get_lr(generator_optimizer):1.6f}' +
                 f'. disc_lr: {get_lr(discriminator_optimizer):1.6f}'
             )
             tqdm_bar_epoch.update(x_train.shape[0])
 
             n_examples += x_train.shape[0]
 
-            w.writerow([n_examples, generator_loss.detach().item()])
+            w.writerow([n_examples, total_generator_loss])
             f.flush()
 
             total_generator_loss = 0.9 * total_generator_loss + 0.1 * generator_loss.detach().item()

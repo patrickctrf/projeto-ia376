@@ -36,8 +36,8 @@ def experiment(device=torch.device("cpu")):
     discriminator_scaler = GradScaler()
 
     # Variable LR
-    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
-    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
+    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
+    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
 
     # loss
     loss = HyperbolicLoss()

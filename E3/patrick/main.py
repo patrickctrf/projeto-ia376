@@ -30,17 +30,14 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.01, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.01, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=3e-4, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=3e-4, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
-    # Variable LR.
-    # generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(generator_optimizer, 'min', patience=15000 // batch_size, factor=0.1, min_lr=1e-4, verbose=True)
-    generator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(generator_optimizer, T_max=9000 // batch_size, eta_min=0.0)
-    discriminator_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(discriminator_optimizer, T_max=9000 // batch_size, eta_min=0.0)
-    for i in range(9000 // batch_size):
-        discriminator_scheduler.step()
+    # Variable LR
+    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
+    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
 
     # loss
     loss = HyperbolicLoss()

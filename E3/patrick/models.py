@@ -1,9 +1,134 @@
+import torch
 from torch import nn
 from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, AdaptiveMaxPool1d
 
 __all__ = ["Generator2DUpsampled", "Generator1DUpsampled", "Generator1DTransposed", "Discriminator2D", "Discriminator1D"]
 
 from activations import SReLU
+
+
+class AttentionLayer(torch.nn.Module):
+
+    def __init__(self, embedding_dim: int, context_size=128, device=torch.device("cpu")):
+        """
+        Implements the Self-attention, decoder-only."
+
+        Args:
+            vocab_size (int): Size of the input vocabulary.
+            max_seq_length (int): Size of the sequence to consider as context for prediction.
+            dim (int): Dimension of the embedding layer for each word in the context.
+            n_layers (int): number of self-attention layers.
+            pad_token_id (int): id of the pad token that will be ignored in the attention.
+        """
+        super().__init__()
+        self.context_size = context_size
+        self.embedding_dim = embedding_dim
+        max_seq_length = context_size
+
+        # hidden_size for MLP
+        hidden_size = 2048
+
+        # Linear projections
+        self.w_q = nn.Linear(embedding_dim, embedding_dim)
+        self.w_k = nn.Linear(embedding_dim, embedding_dim)
+        self.w_v = nn.Linear(embedding_dim, embedding_dim)
+        self.w_0 = nn.Linear(embedding_dim, embedding_dim)
+
+        # output MLP
+        self.mlp = nn.Sequential(
+            nn.Linear(embedding_dim, hidden_size),
+            nn.LeakyReLU(),
+            nn.LayerNorm(hidden_size),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, embedding_dim)
+        )
+
+        self.activation = nn.LeakyReLU()
+
+        # cast to probabilities
+        self.softmax = nn.Softmax(dim=-1)
+
+        self.norm1 = nn.LayerNorm(embedding_dim)
+        self.norm2 = nn.LayerNorm(embedding_dim)
+
+        # Matriz triangular de mascara, convertida para Booleano
+        # Onde vale 1, o valor deve ser substituida por um valor negativo alto no tensor de scores.
+        self.casual_mask = torch.ones((max_seq_length, max_seq_length), device=device).triu(diagonal=1) == 1.0
+
+    def forward(self, x_embeddings):
+        k = self.w_k(x_embeddings)
+        v = self.w_v(x_embeddings)
+        q = self.w_q(x_embeddings)
+
+        scores = torch.matmul(q, k.transpose(1, 2))
+
+        # Onde a mascara vale 1, retornamos um valor negativo grande.
+        # Onde a mascara vale zero, matemos intacto.
+        probabilities = self.softmax(scores)
+
+        e = self.w_0(self.norm1(x_embeddings + torch.matmul(probabilities, v)))
+
+        logits = self.mlp(e)
+
+        return self.norm2(self.activation(logits + e))
+
+
+class Generator2DTransformer(nn.Module):
+
+    def __init__(self, noise_length=256, context_size=128, target_length=64000, n_input_channels=24, n_output_channels=64,
+                 kernel_size=7, stride=1, padding=0, dilation=1, n_layers=2,
+                 bias=False, device=torch.device("cpu"),):
+        """
+        Implements the Self-attention, decoder-only."
+
+        Args:
+            n_layers (int): number of self-attention layers.
+        """
+        # Escreva seu código aqui.
+        super().__init__()
+        embedding_dim = 1024
+        self.context_size = context_size
+        self.embedding_dim = embedding_dim
+
+        # hidden_size for MLP
+        hidden_size = 2048
+
+        # tokens (words indexes) embedding and positional embedding
+        self.c_embedding = nn.Sequential(
+            nn.Linear(1024, hidden_size),
+            nn.Tanh(),
+            nn.Linear(hidden_size, embedding_dim)
+        )
+        self.p_embedding = nn.Embedding(context_size, embedding_dim)
+
+        self.attention = nn.Sequential(*[AttentionLayer(embedding_dim=embedding_dim, context_size=context_size, device=device) for i in range(n_layers)])
+
+        self.linear_output = nn.Linear(embedding_dim, embedding_dim)
+
+        # cast to probabilities
+        self.softmax = nn.Softmax(dim=-1)
+
+        self.positional_indexes = torch.arange(self.context_size, device=device).view(1, -1)
+
+    def forward(self, inputs):
+        """
+        Args:
+            inputs is a LongTensor of shape (batch_size, max_seq_length)
+
+        Returns:
+            logits of shape (batch_size, max_seq_length, vocab_size)
+        """
+        # Escreva seu código aqui.
+
+        input_embeddings = self.c_embedding(inputs)
+
+        positional_embeddings = self.p_embedding(self.positional_indexes.repeat(inputs.shape[0], 1))
+
+        x_embeddings = positional_embeddings + input_embeddings
+
+        logits = self.attention(x_embeddings)
+
+        return self.linear_output(logits)
 
 
 class Generator2DUpsampled(nn.Module):
@@ -56,7 +181,7 @@ class Discriminator2D(nn.Module):
         # self.pooling = nn.AdaptiveMaxPool2d(1)
 
         self.feature_extractor = Sequential(
-            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias,), nn.Tanh(),
+            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias, ), nn.Tanh(),
             ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),
             ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),

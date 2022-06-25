@@ -18,7 +18,7 @@ def experiment(device=torch.device("cpu")):
     batch_size = 16
     noise_length = 1
     target_length = 64000
-    use_amp = True
+    use_amp = False
     max_examples = 1_000_000
 
     # Models
@@ -30,8 +30,8 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=3e-4, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=3e-4, )
+    generator_optimizer = torch.optim.SGD(generator.parameters(), lr=1e+10, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-4, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
@@ -44,8 +44,7 @@ def experiment(device=torch.device("cpu")):
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
-    # train_dataset = Subset(train_dataset, [0, ])  # dummy dataset for testing script
-    # Carrega os dados em mini batches, evita memory overflow
+    train_dataset = Subset(train_dataset, [0, ])  # dummy dataset for testing script
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # Log data
@@ -63,7 +62,7 @@ def experiment(device=torch.device("cpu")):
         discriminator.train()
 
         # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-        train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
+        train_datamanager = DataManager(train_dataloader, device=device, buffer_size=3)
         for x_train, y_train in train_datamanager:
             # Comodidade para dizer que as saidas sao verdadeiras ou falsas
             true_labels = torch.ones((x_train.shape[0], 1), device=device)
@@ -121,7 +120,7 @@ def experiment(device=torch.device("cpu")):
             total_generator_loss = 0.9 * total_generator_loss + 0.1 * generator_loss.detach().item()
 
             # Checkpoint to best models found.
-            if n_examples > last_checkpoint + 100 * batch_size and best_loss > total_generator_loss:
+            if n_examples > last_checkpoint + 1 * batch_size and best_loss > total_generator_loss:
                 # Update the new best loss.
                 best_loss = total_generator_loss
                 last_checkpoint = n_examples
@@ -132,6 +131,8 @@ def experiment(device=torch.device("cpu")):
                 torch.save(discriminator, "checkpoints/best_discriminator.pth")
                 torch.save(discriminator.state_dict(), "checkpoints/best_discriminator_state_dict.pth")
                 print("\ncheckpoint!\n")
+                generator.train()
+                discriminator.train()
 
         # Save everything after each epoch
         generator.eval()
@@ -140,6 +141,8 @@ def experiment(device=torch.device("cpu")):
         discriminator.eval()
         torch.save(discriminator, "checkpoints/discriminator.pth")
         torch.save(discriminator.state_dict(), "checkpoints/discriminator_state_dict.pth")
+        generator.train()
+        discriminator.train()
     f.close()
 
 

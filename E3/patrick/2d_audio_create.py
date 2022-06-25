@@ -8,7 +8,7 @@ def polar_to_rect(amplitude, angle):
     return amplitude * (np.cos(angle) + 1j * np.sin(angle))
 
 
-generator = torch.load("checkpoints/generator.pth", map_location=torch.device("cpu")).train()
+generator = torch.load("checkpoints/best_generator.pth", map_location=torch.device("cpu")).train()
 
 ruido_e_classes = torch.cat(
     (

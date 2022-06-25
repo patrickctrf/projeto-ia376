@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, AdaptiveMaxPool1d
+from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, AdaptiveMaxPool1d, functional
 
 __all__ = ["Generator2DUpsampled", "Generator1DUpsampled", "Generator1DTransposed", "Discriminator2D", "Discriminator1D"]
 
@@ -77,7 +77,7 @@ class Generator2DTransformer(nn.Module):
 
     def __init__(self, noise_length=256, context_size=128, target_length=64000, n_input_channels=24, n_output_channels=64,
                  kernel_size=7, stride=1, padding=0, dilation=1, n_layers=2,
-                 bias=False, device=torch.device("cpu"),):
+                 bias=False, device=torch.device("cpu"), ):
         """
         Implements the Self-attention, decoder-only."
 
@@ -141,24 +141,29 @@ class Generator2DUpsampled(nn.Module):
         n_filters = 256
 
         self.feature_generator = Sequential(
-            nn.Conv2d(n_input_channels, 256, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding=(2, 9), bias=bias), nn.Tanh(),
-            nn.Upsample(size=(4, 32), mode='bilinear', align_corners=True),
-            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, bias=bias),
-            nn.Upsample(size=(8, 64), mode='bilinear', align_corners=True),
-            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, bias=bias),
-            nn.Upsample(size=(16, 128), mode='bilinear', align_corners=True),
-            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, bias=bias),
-            nn.Upsample(size=(32, 256), mode='bilinear', align_corners=True),
-            ResBlock(256, 128, kernel_size=3, stride=1, dilation=1, bias=bias),
-            nn.Upsample(size=(64, 512), mode='bilinear', align_corners=True),
-            ResBlock(128, 64, kernel_size=3, stride=1, dilation=1, bias=bias),
-            nn.Upsample(size=(128, 1024), mode='bilinear', align_corners=True),
-            ResBlock(64, 32, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.Conv2d(n_input_channels, 256, kernel_size=(2, 16), stride=(1, 1), dilation=(1, 1), padding=(1, 15), bias=bias), nn.Tanh(),
+            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
+            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
+            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
+            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            ResBlock(256, 128, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
+            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            ResBlock(128, 64, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
+            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            ResBlock(64, 32, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
             nn.Conv2d(32, 2, kernel_size=(1, 1), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
         )
 
+        self.dummy_tensor = nn.Parameter(torch.rand((1, 2, 1024, 128), requires_grad=True))
+
     def forward(self, x):
-        return self.feature_generator(x).transpose(2, 3)
+        som_2_canais = self.feature_generator(x).transpose(2, 3)
+        som_2_canais[:, 1, :, :] = torch.tanh(som_2_canais[:, 1, :, :]) * 3.1415926535
+        # return som_2_canais
+        return self.dummy_tensor
 
 
 class Discriminator2D(nn.Module):
@@ -167,18 +172,6 @@ class Discriminator2D(nn.Module):
         super().__init__()
 
         n_output_channels = 256
-
-        # self.feature_extractor = Sequential(
-        #     nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias), nn.Tanh(),
-        #     nn.MaxPool2d(2, 2),
-        #     nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
-        #     nn.MaxPool2d(2, 2),
-        #     nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
-        #     nn.MaxPool2d(2, 2),
-        #     nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
-        # )
-        #
-        # self.pooling = nn.AdaptiveMaxPool2d(1)
 
         self.feature_extractor = Sequential(
             nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias, ), nn.Tanh(),
@@ -194,14 +187,17 @@ class Discriminator2D(nn.Module):
             nn.AvgPool2d(2, 2),
             ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
         )
-        self.pooling = nn.AdaptiveAvgPool2d(1)
 
-        self.linear = Linear(n_output_channels, 1, bias=bias)
+        self.mlp = nn.Sequential(
+            Linear(2560, 1024, bias=bias),
+            nn.Tanh(),
+            Linear(1024, 1, bias=bias),
+        )
 
         self.activation = Sigmoid()
 
     def forward(self, x):
-        return self.activation(self.linear(self.pooling(self.feature_extractor(x)).flatten(start_dim=1)))
+        return self.activation(self.mlp(self.feature_extractor(x).flatten(start_dim=1)))
 
 
 class Discriminator1D(nn.Module):
@@ -231,7 +227,7 @@ class Discriminator1D(nn.Module):
         self.aux = Sequential(
             nn.Flatten(),
             Linear(64000, 10),
-            SReLU(),
+            nn.Tanh(),
             Linear(10, 1),
             nn.Sigmoid(),
         )
@@ -320,7 +316,7 @@ class Generator1DUpsampled(nn.Module):
         self.feature_generator = Sequential(
             nn.Conv1d(n_input_channels, n_filters, kernel_size=(3,), stride=(1,), dilation=(1,), padding=(2,), bias=bias), nn.Tanh(),
             nn.Upsample(size=(8,), mode='linear', align_corners=True),
-            ResLayer(n_filters, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=1, padding=1, bias=bias), nn.Tanh(),
             nn.Upsample(size=(32,), mode='linear', align_corners=True),
             ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
             nn.Upsample(size=(128,), mode='linear', align_corners=True),
@@ -332,7 +328,7 @@ class Generator1DUpsampled(nn.Module):
             nn.Upsample(size=(16384,), mode='linear', align_corners=True),
             ResLayer(n_filters, kernel_size=3, stride=1, dilation=2, bias=bias), nn.Tanh(),
             nn.Upsample(size=(64000,), mode='linear', align_corners=True),
-            ResLayer(n_filters, kernel_size=3, stride=1, dilation=1, bias=bias), nn.Tanh(),
+            ResLayer(n_filters, kernel_size=3, stride=1, dilation=1, padding=1, bias=bias), nn.Tanh(),
             nn.Upsample(size=(64000,), mode='linear', align_corners=True),
             nn.Conv1d(n_filters, n_output_channels, kernel_size=(1,), stride=(1,), dilation=(1,), padding=(0,), bias=bias),
         )
@@ -344,7 +340,7 @@ class Generator1DUpsampled(nn.Module):
 class ResBlock(nn.Module):
     def __init__(self, n_input_channels=6, n_output_channels=7,
                  kernel_size=7, stride=1, padding=0, dilation=1,
-                 groups=1, bias=True, padding_mode='replicate'):
+                 groups=1, bias=True, padding_mode='zeros'):
         """
     ResNet-like block, receives as arguments the same that PyTorch's Conv1D
     module.

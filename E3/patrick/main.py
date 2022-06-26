@@ -30,8 +30,8 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.SGD(generator.parameters(), lr=1e+10, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-4, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-1, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-5, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
@@ -40,7 +40,7 @@ def experiment(device=torch.device("cpu")):
     discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
 
     # loss
-    loss = HyperbolicLoss()
+    criterion = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
@@ -70,6 +70,7 @@ def experiment(device=torch.device("cpu")):
 
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
+            discriminator_optimizer.zero_grad()
             with autocast(enabled=use_amp):
                 generated_data = generator(x_train)
 
@@ -77,7 +78,8 @@ def experiment(device=torch.device("cpu")):
                 # We invert the labels here and don't train the discriminator because we want the generator
                 # to make things the discriminator classifies as true.
                 generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 2:, ]), dim=1))
-                generator_loss = loss(generator_discriminator_out, true_labels)
+                generator_loss = criterion(generated_data, y_train[:, :2, ])
+                # generator_loss = criterion(generator_discriminator_out, true_labels)
 
             generator_scaler.scale(generator_loss).backward()
             generator_scaler.step(generator_optimizer)
@@ -85,13 +87,14 @@ def experiment(device=torch.device("cpu")):
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
+            generator_optimizer.zero_grad()
             with autocast(enabled=use_amp):
                 true_discriminator_out = discriminator(y_train)
-                true_discriminator_loss = loss(true_discriminator_out, true_labels)
+                true_discriminator_loss = criterion(true_discriminator_out, true_labels)
 
                 # add .detach() here think about this
                 generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 2:, ]), dim=1))
-                generator_discriminator_loss = loss(generator_discriminator_out, fake_labels)
+                generator_discriminator_loss = criterion(generator_discriminator_out, fake_labels)
 
                 discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
 

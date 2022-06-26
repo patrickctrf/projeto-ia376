@@ -6,9 +6,7 @@ __all__ = ["Generator2DUpsampled", "Discriminator2D", "DummyGenerator"]
 
 
 class DummyGenerator(nn.Module):
-    def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
-                 kernel_size=7, stride=1, padding=0, dilation=1,
-                 bias=False):
+    def __init__(self, *args, **kwargs):
         super().__init__()
 
         self.dummy_tensor = nn.Parameter(torch.rand((1, 2, 1024, 128), requires_grad=True))

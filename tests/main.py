@@ -40,7 +40,7 @@ def experiment(device=torch.device("cpu")):
     loss = HyperbolicLoss()
 
     # Train Data
-    train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
+    train_dataset = NsynthDatasetFourier(path="nsynth-train/", noise_length=noise_length)
     train_dataset = Subset(train_dataset, [0, ])  # dummy dataset for testing script
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 

@@ -157,13 +157,13 @@ class Generator2DUpsampled(nn.Module):
             nn.Conv2d(32, 2, kernel_size=(1, 1), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
         )
 
-        self.dummy_tensor = nn.Parameter(torch.rand((1, 2, 1024, 128), requires_grad=True))
+        # self.dummy_tensor = nn.Parameter(torch.rand((1, 2, 1024, 128), requires_grad=True))
 
     def forward(self, x):
         som_2_canais = self.feature_generator(x).transpose(2, 3)
         som_2_canais[:, 1, :, :] = torch.tanh(som_2_canais[:, 1, :, :]) * 3.1415926535
-        # return som_2_canais
-        return self.dummy_tensor
+        return som_2_canais
+        # return self.dummy_tensor
 
 
 class Discriminator2D(nn.Module):
@@ -174,12 +174,12 @@ class Discriminator2D(nn.Module):
         n_output_channels = 256
 
         self.feature_extractor = Sequential(
-            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, stride=3, dilation=2, bias=bias, ), nn.Tanh(),
-            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=3, dilation=2, bias=bias, ), nn.Tanh(),
+            ResBlock(32, 64, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),
-            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            ResBlock(64, 128, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),
-            ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
+            ResBlock(128, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),
             ResBlock(n_output_channels, n_output_channels, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),

@@ -15,10 +15,10 @@ from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    batch_size = 16
+    batch_size = 32
     noise_length = 1
     target_length = 64000
-    use_amp = False
+    use_amp = True
     max_examples = 1_000_000
 
     # Models
@@ -36,15 +36,15 @@ def experiment(device=torch.device("cpu")):
     discriminator_scaler = GradScaler()
 
     # Variable LR
-    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
-    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 75000), 0.1))
+    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
+    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
 
     # loss
     criterion = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
-    train_dataset = Subset(train_dataset, [0, ])  # dummy dataset for testing script
+    # train_dataset = Subset(train_dataset, [0, ])  # dummy dataset for testing script
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # Log data
@@ -78,8 +78,8 @@ def experiment(device=torch.device("cpu")):
                 # We invert the labels here and don't train the discriminator because we want the generator
                 # to make things the discriminator classifies as true.
                 generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 2:, ]), dim=1))
-                generator_loss = criterion(generated_data, y_train[:, :2, ])
-                # generator_loss = criterion(generator_discriminator_out, true_labels)
+                # generator_loss = criterion(generated_data, y_train[:, :2, ])
+                generator_loss = criterion(generator_discriminator_out, true_labels)
 
             generator_scaler.scale(generator_loss).backward()
             generator_scaler.step(generator_optimizer)
@@ -123,7 +123,7 @@ def experiment(device=torch.device("cpu")):
             total_generator_loss = 0.9 * total_generator_loss + 0.1 * generator_loss.detach().item()
 
             # Checkpoint to best models found.
-            if n_examples > last_checkpoint + 1 * batch_size and best_loss > total_generator_loss:
+            if n_examples > last_checkpoint + 100 * batch_size and best_loss > total_generator_loss:
                 # Update the new best loss.
                 best_loss = total_generator_loss
                 last_checkpoint = n_examples

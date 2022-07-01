@@ -4,7 +4,7 @@ from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, Ada
 
 __all__ = ["Generator2DUpsampled", "Generator1DUpsampled", "Generator1DTransposed", "Discriminator2D", "Discriminator1D"]
 
-from activations import SReLU
+from activations import SReLU, BnActivation, LnActivation
 
 
 class AttentionLayer(torch.nn.Module):
@@ -138,10 +138,9 @@ class Generator2DUpsampled(nn.Module):
         super().__init__()
         self.target_length = target_length
 
-        n_filters = 256
-
         self.feature_generator = Sequential(
-            nn.Conv2d(n_input_channels, 256, kernel_size=(2, 16), stride=(1, 1), dilation=(1, 1), padding=(1, 15), bias=bias), nn.Tanh(),
+            nn.Conv2d(n_input_channels, 256, kernel_size=(2, 16), stride=(1, 1), dilation=(1, 1), padding=(1, 15), bias=bias), BnActivation(256),
+            ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
             nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
             nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
@@ -157,13 +156,13 @@ class Generator2DUpsampled(nn.Module):
             nn.Conv2d(32, 2, kernel_size=(1, 1), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
         )
 
-        # self.dummy_tensor = nn.Parameter(torch.rand((1, 2, 1024, 128), requires_grad=True))
+        self.activation = nn.Tanh()
 
     def forward(self, x):
         som_2_canais = self.feature_generator(x).transpose(2, 3)
-        som_2_canais[:, 1, :, :] = torch.tanh(som_2_canais[:, 1, :, :]) * 3.1415926535
+        som_2_canais[:, 1, :, :] = self.activation(som_2_canais[:, 1, :, :]) * 3.1415926535897
+        som_2_canais[:, 0, :, :] = self.activation(som_2_canais[:, 0, :, :]) * 11.85 - 7.35
         return som_2_canais
-        # return self.dummy_tensor
 
 
 class Discriminator2D(nn.Module):
@@ -174,7 +173,7 @@ class Discriminator2D(nn.Module):
         n_output_channels = 256
 
         self.feature_extractor = Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=3, dilation=2, bias=bias, ), nn.Tanh(),
+            nn.Conv2d(n_input_channels, 32, kernel_size=1, stride=3, dilation=3, bias=bias, ), BnActivation(32),
             ResBlock(32, 64, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),
             ResBlock(64, 128, kernel_size=3, stride=1, dilation=1, bias=bias),
@@ -190,7 +189,7 @@ class Discriminator2D(nn.Module):
 
         self.mlp = nn.Sequential(
             Linear(2560, 1024, bias=bias),
-            nn.Tanh(),
+            LnActivation(1024),
             Linear(1024, 1, bias=bias),
         )
 
@@ -352,7 +351,7 @@ class ResBlock(nn.Module):
                 nn.Conv2d(n_input_channels, n_output_channels, kernel_size,
                           stride, kernel_size // 2 * dilation, dilation,
                           groups, bias, padding_mode),
-                nn.Tanh(),
+                BnActivation(n_output_channels),
                 nn.Conv2d(n_output_channels, n_output_channels, kernel_size,
                           stride, kernel_size // 2 * dilation,
                           dilation, groups, bias, padding_mode),
@@ -364,7 +363,7 @@ class ResBlock(nn.Module):
                           stride, padding, dilation, groups, bias, padding_mode)
             )
 
-        self.activation = nn.Tanh()
+        self.activation = BnActivation(n_output_channels)
 
     def forward(self, input_seq):
         return self.activation(self.feature_extractor(input_seq) + self.skip_connection(input_seq))

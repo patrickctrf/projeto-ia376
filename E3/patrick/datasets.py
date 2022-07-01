@@ -100,9 +100,12 @@ class NsynthDatasetFourier(Dataset):
 
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
-        # Sendo y == (sample_de_audio, one hot do timbre (family), one hot das notas)
-        return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
-               torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
+        # # Sendo y == (sample_de_audio, one hot do timbre (family), one hot das notas)
+        # return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
+        #        torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
+
+        return torch.normal(mean=0, std=1.0, size=(16, self.noise_length, self.noise_length)), \
+               torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]),), dim=0)
 
     def __len__(self, ):
         return self.summary_df.shape[0]
@@ -182,7 +185,7 @@ if __name__ == '__main__':
     # Train Data
 
     epochs = 10
-    batch_size = 1
+    batch_size = 16
     noise_length = 1
     target_length = 64000
 
@@ -191,12 +194,16 @@ if __name__ == '__main__':
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length, shuffle=False)
     x = train_dataset[0]
     # Carrega os dados em mini batches, evita memory overflow
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
     # Facilita e acelera a transferência de dispositivos (Cpu/GPU)
-    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=1)
+    train_datamanager = DataManager(train_dataloader, device=device, buffer_size=30)
 
     x = 0
-    for sample in tqdm(train_datamanager):
-        x = x + 1
+    minimo = 0
+    maximo = 0
+    for entrada, saida in tqdm(train_datamanager):
+        # x = x + 1
+        maximo = max(maximo, saida.detach().cpu().numpy()[:, 0].max())
+        minimo = min(minimo, saida.detach().cpu().numpy()[:, 0].min())
 
     x = 1

@@ -15,31 +15,32 @@ from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    batch_size = 16
+    batch_size = 32
     noise_length = 1
     target_length = 64000
+    use_amp = True
     max_examples = 1_000_000
 
     # Models
-    generator = Generator2DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=16, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
-    discriminator = Discriminator2D(seq_length=target_length, n_input_channels=2, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    generator = Generator2DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    discriminator = Discriminator2D(seq_length=target_length, n_input_channels=25, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
     generator.to(device)
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-2, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-3, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-1, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-5, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
     # Variable LR
-    # generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 - epoch / 30000, 0.1))
-    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 - epoch / 30000, 0.01))
+    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
+    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
 
     # loss
-    criterion = HyperbolicLoss()
+    criterion = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
@@ -47,7 +48,7 @@ def experiment(device=torch.device("cpu")):
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # Log data
-    total_generator_loss = best_loss = 9999.0
+    total_generator_loss = best_loss = 9999
     f = open("loss_log.csv", "w")
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
@@ -70,38 +71,40 @@ def experiment(device=torch.device("cpu")):
             # zero the gradients on each iteration
             generator_optimizer.zero_grad()
             discriminator_optimizer.zero_grad()
+            with autocast(enabled=use_amp):
+                generated_data = generator(x_train)
 
-            generated_data = generator(x_train)
-            # Train the generator
-            # We invert the labels here and don't train the discriminator because we want the generator
-            # to make things the discriminator classifies as true.
-            generator_discriminator_out = discriminator(generated_data)
-            # generator_loss = criterion(generated_data, y_train[:, :2, ])
-            generator_loss = criterion(generator_discriminator_out, true_labels)
+                # Train the generator
+                # We invert the labels here and don't train the discriminator because we want the generator
+                # to make things the discriminator classifies as true.
+                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 2:, ]), dim=1))
+                # generator_loss = criterion(generated_data, y_train[:, :2, ])
+                generator_loss = criterion(generator_discriminator_out, true_labels)
 
-            generator_loss.backward()
-            nn.utils.clip_grad_value_(generator.parameters(), 1.0)
-            generator_optimizer.step()
+            generator_scaler.scale(generator_loss).backward()
+            generator_scaler.step(generator_optimizer)
+            generator_scaler.update()
 
             # Train the discriminator on the true/generated data
             discriminator_optimizer.zero_grad()
             generator_optimizer.zero_grad()
+            with autocast(enabled=use_amp):
+                true_discriminator_out = discriminator(y_train)
+                true_discriminator_loss = criterion(true_discriminator_out, true_labels)
 
-            true_discriminator_out = discriminator(y_train)
-            true_discriminator_loss = criterion(true_discriminator_out, true_labels)
+                # add .detach() here think about this
+                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 2:, ]), dim=1))
+                generator_discriminator_loss = criterion(generator_discriminator_out, fake_labels)
 
-            generator_discriminator_out = discriminator(generated_data.detach())
-            generator_discriminator_loss = criterion(generator_discriminator_out, fake_labels)
+                discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
 
-            discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2
+            discriminator_scaler.scale(discriminator_loss).backward()
+            discriminator_scaler.step(discriminator_optimizer)
+            discriminator_scaler.update()
 
-            if total_generator_loss < 2.7:  # discriminator waits for generator to learn
-                discriminator_loss.backward()
-                discriminator_optimizer.step()
-
-                # LR scheduler update
-                discriminator_scheduler.step()
-            # generator_scheduler.step()
+            # LR scheduler update
+            discriminator_scheduler.step()
+            generator_scheduler.step()
 
             tqdm_bar_epoch.set_description(
                 f'current_generator_loss: {total_generator_loss:5.5f}' +
@@ -120,7 +123,7 @@ def experiment(device=torch.device("cpu")):
             total_generator_loss = 0.9 * total_generator_loss + 0.1 * generator_loss.detach().item()
 
             # Checkpoint to best models found.
-            if n_examples > last_checkpoint + 100 * batch_size and (best_loss > total_generator_loss or total_generator_loss < 0.6):
+            if n_examples > last_checkpoint + 100 * batch_size and best_loss > total_generator_loss:
                 # Update the new best loss.
                 best_loss = total_generator_loss
                 last_checkpoint = n_examples
@@ -133,9 +136,6 @@ def experiment(device=torch.device("cpu")):
                 print("\ncheckpoint!\n")
                 generator.train()
                 discriminator.train()
-
-            if n_examples > max_examples:
-                break
 
         # Save everything after each epoch
         generator.eval()

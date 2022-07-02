@@ -1,29 +1,25 @@
 import torch
 from torch import nn
-from torch.nn import Sequential, Conv1d, Linear, AdaptiveAvgPool1d, Sigmoid, AdaptiveMaxPool1d, functional
+from torch.nn import Sequential, Conv1d, Linear, Sigmoid, AdaptiveMaxPool1d
 
 __all__ = ["Generator2DUpsampled", "Generator1DUpsampled", "Generator1DTransposed", "Discriminator2D", "Discriminator1D"]
 
-from activations import SReLU, BnActivation, LnActivation
+from activations import BnActivation, LnActivation
 
 
-class AttentionLayer(torch.nn.Module):
+class _AttentionLayer(torch.nn.Module):
 
-    def __init__(self, embedding_dim: int, context_size=128, device=torch.device("cpu")):
+    def __init__(self, embedding_dim: int, max_seq_length: int = 300):
         """
         Implements the Self-attention, decoder-only."
 
         Args:
-            vocab_size (int): Size of the input vocabulary.
             max_seq_length (int): Size of the sequence to consider as context for prediction.
-            dim (int): Dimension of the embedding layer for each word in the context.
-            n_layers (int): number of self-attention layers.
-            pad_token_id (int): id of the pad token that will be ignored in the attention.
+            embedding_dim (int): Dimension of the embedding layer for each word in the context.
         """
         super().__init__()
-        self.context_size = context_size
+
         self.embedding_dim = embedding_dim
-        max_seq_length = context_size
 
         # hidden_size for MLP
         hidden_size = 2048
@@ -37,10 +33,9 @@ class AttentionLayer(torch.nn.Module):
         # output MLP
         self.mlp = nn.Sequential(
             nn.Linear(embedding_dim, hidden_size),
-            nn.LeakyReLU(),
-            nn.LayerNorm(hidden_size),
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size, embedding_dim)
+            LnActivation(hidden_size),
+            # nn.Dropout(0.1),
+            nn.Linear(hidden_size, embedding_dim),
         )
 
         self.activation = nn.LeakyReLU()
@@ -53,7 +48,7 @@ class AttentionLayer(torch.nn.Module):
 
         # Matriz triangular de mascara, convertida para Booleano
         # Onde vale 1, o valor deve ser substituida por um valor negativo alto no tensor de scores.
-        self.casual_mask = torch.ones((max_seq_length, max_seq_length), device=device).triu(diagonal=1) == 1.0
+        self.casual_mask = torch.ones((max_seq_length, max_seq_length), ).triu(diagonal=1) == 1.0
 
     def forward(self, x_embeddings):
         k = self.w_k(x_embeddings)
@@ -62,8 +57,6 @@ class AttentionLayer(torch.nn.Module):
 
         scores = torch.matmul(q, k.transpose(1, 2))
 
-        # Onde a mascara vale 1, retornamos um valor negativo grande.
-        # Onde a mascara vale zero, matemos intacto.
         probabilities = self.softmax(scores)
 
         e = self.w_0(self.norm1(x_embeddings + torch.matmul(probabilities, v)))
@@ -73,21 +66,69 @@ class AttentionLayer(torch.nn.Module):
         return self.norm2(self.activation(logits + e))
 
 
-class Generator2DTransformer(nn.Module):
+class TransformerDiscriminator(torch.nn.Module):
 
-    def __init__(self, noise_length=256, context_size=128, target_length=64000, n_input_channels=24, n_output_channels=64,
-                 kernel_size=7, stride=1, padding=0, dilation=1, n_layers=2,
-                 bias=False, device=torch.device("cpu"), ):
+    def __init__(self, dim: int, n_layers: int = 2, max_seq_length: int = 300, input_size: int = 6, output_size: int = 7):
         """
         Implements the Self-attention, decoder-only."
 
         Args:
+            input_size (int): Size of the input features.
+            max_seq_length (int): Size of the sequence to consider as context for prediction.
+            dim (int): Dimension of the embedding layer for each word in the context.
             n_layers (int): number of self-attention layers.
         """
         # Escreva seu código aqui.
         super().__init__()
-        embedding_dim = 1024
-        self.context_size = context_size
+        embedding_dim = dim
+        self.embedding_dim = embedding_dim
+
+        # tokens (words indexes) embedding and positional embedding
+        self.c_embedding = nn.Sequential(
+            nn.Linear(input_size, embedding_dim),
+            LnActivation(embedding_dim),
+            nn.Linear(embedding_dim, embedding_dim),
+        )
+        self.p_embedding = nn.Embedding(max_seq_length, embedding_dim)
+
+        self.attention = nn.Sequential(*[_AttentionLayer(embedding_dim=embedding_dim) for _ in range(n_layers)])
+
+        self.CLS = nn.Parameter(torch.randn((1, 1, input_size,)))
+
+        self.dense_network = nn.Linear(embedding_dim, output_size)
+
+    def forward(self, inputs):
+        # Precisa adicionar o token CLS no inicio de cada sequencia
+        inputs = torch.cat((self.CLS.repeat(inputs.shape[0], 1, 1), inputs), dim=1)
+
+        positional_indexes = torch.arange(inputs.shape[1], device=inputs.device).view(1, -1)
+
+        input_embeddings = self.c_embedding(inputs)
+
+        positional_embeddings = self.p_embedding(positional_indexes.repeat(inputs.shape[0], 1))
+
+        x_embeddings = positional_embeddings + input_embeddings
+
+        logits = self.attention(x_embeddings)
+
+        return torch.sigmoid(self.dense_network(logits)[:, 0])
+
+
+class TransformerGenerator(torch.nn.Module):
+
+    def __init__(self, dim: int, n_layers: int = 2, max_seq_length: int = 300, input_size: int = 6, output_size: int = 7):
+        """
+        Implements the Self-attention, decoder-only."
+
+        Args:
+            input_size (int): Size of the input features.
+            max_seq_length (int): Size of the sequence to consider as context for prediction.
+            dim (int): Dimension of the embedding layer for each word in the context.
+            n_layers (int): number of self-attention layers.
+        """
+        # Escreva seu código aqui.
+        super().__init__()
+        embedding_dim = dim
         self.embedding_dim = embedding_dim
 
         # hidden_size for MLP
@@ -95,40 +136,31 @@ class Generator2DTransformer(nn.Module):
 
         # tokens (words indexes) embedding and positional embedding
         self.c_embedding = nn.Sequential(
-            nn.Linear(1024, hidden_size),
-            nn.Tanh(),
-            nn.Linear(hidden_size, embedding_dim)
+            nn.Linear(input_size, embedding_dim),
+            LnActivation(embedding_dim),
+            nn.Linear(embedding_dim, embedding_dim),
         )
-        self.p_embedding = nn.Embedding(context_size, embedding_dim)
+        self.p_embedding = nn.Embedding(max_seq_length, embedding_dim)
 
-        self.attention = nn.Sequential(*[AttentionLayer(embedding_dim=embedding_dim, context_size=context_size, device=device) for i in range(n_layers)])
+        self.attention = nn.Sequential(*[_AttentionLayer(embedding_dim=embedding_dim) for _ in range(n_layers)])
 
-        self.linear_output = nn.Linear(embedding_dim, embedding_dim)
-
-        # cast to probabilities
-        self.softmax = nn.Softmax(dim=-1)
-
-        self.positional_indexes = torch.arange(self.context_size, device=device).view(1, -1)
+        self.dense_network = nn.Linear(embedding_dim, output_size)
 
     def forward(self, inputs):
-        """
-        Args:
-            inputs is a LongTensor of shape (batch_size, max_seq_length)
-
-        Returns:
-            logits of shape (batch_size, max_seq_length, vocab_size)
-        """
-        # Escreva seu código aqui.
+        positional_indexes = torch.arange(inputs.shape[1], device=inputs.device).view(1, -1)
 
         input_embeddings = self.c_embedding(inputs)
 
-        positional_embeddings = self.p_embedding(self.positional_indexes.repeat(inputs.shape[0], 1))
+        positional_embeddings = self.p_embedding(positional_indexes.repeat(inputs.shape[0], 1))
 
         x_embeddings = positional_embeddings + input_embeddings
 
         logits = self.attention(x_embeddings)
 
-        return self.linear_output(logits)
+        som_2_canais = self.dense_network(logits).view(-1, 2, 128, 1024)
+        som_2_canais[:, 1, :] = torch.tanh(som_2_canais[:, 1, :]) * 3.1415926535897
+        som_2_canais[:, 0, :] = torch.tanh(som_2_canais[:, 0, :]) * 11.85 - 7.35
+        return som_2_canais.transpose(2, 3)
 
 
 class Generator2DUpsampled(nn.Module):

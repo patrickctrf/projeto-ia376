@@ -1,43 +1,43 @@
 import csv
-import time
 
 import torch
 from torch.cuda.amp import GradScaler, autocast
-from torch.nn import BCEWithLogitsLoss, BCELoss, CrossEntropyLoss, MSELoss
-from torch.profiler import profile, record_function, ProfilerActivity
-from torch.utils.data import DataLoader, Subset
+from torch.nn import MSELoss
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from losses import *
+from losses import HyperbolicLoss
 from datasets import *
 from models import *
+from models import TransformerGenerator
 from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    batch_size = 32
-    noise_length = 1
-    target_length = 64000
+    batch_size = 16
+    noise_length = 16
+    target_length = 128
     use_amp = True
     max_examples = 1_000_000
 
     # Models
-    generator = Generator2DUpsampled(noise_length=noise_length, target_length=target_length, n_input_channels=32, n_output_channels=1, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
-    discriminator = Discriminator2D(seq_length=target_length, n_input_channels=25, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    generator = TransformerGenerator(dim=2048, input_size=noise_length, output_size=2048, max_seq_length=target_length, n_layers=10)
+    # discriminator = TransformerDiscriminator(dim=256, input_size=target_length, output_size=1, max_seq_length=target_length)
+    discriminator = Discriminator2D(seq_length=target_length, n_input_channels=2, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
     generator.to(device)
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-1, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-5, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-3, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-3, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
     # Variable LR
-    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
-    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 / (1 + 9 * epoch / 750000), 0.1))
+    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 - epoch / 30000.0, 0.1))
+    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 - epoch / 30000.0, 0.1))
 
     # loss
     criterion = MSELoss()
@@ -48,7 +48,7 @@ def experiment(device=torch.device("cpu")):
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # Log data
-    total_generator_loss = best_loss = 9999
+    total_generator_loss = best_loss = 9999.0
     f = open("loss_log.csv", "w")
     w = csv.writer(f)
     w.writerow(["epoch", "training_loss"])
@@ -77,7 +77,7 @@ def experiment(device=torch.device("cpu")):
                 # Train the generator
                 # We invert the labels here and don't train the discriminator because we want the generator
                 # to make things the discriminator classifies as true.
-                generator_discriminator_out = discriminator(torch.cat((generated_data, y_train[:, 2:, ]), dim=1))
+                generator_discriminator_out = discriminator(generated_data)
                 # generator_loss = criterion(generated_data, y_train[:, :2, ])
                 generator_loss = criterion(generator_discriminator_out, true_labels)
 
@@ -93,7 +93,7 @@ def experiment(device=torch.device("cpu")):
                 true_discriminator_loss = criterion(true_discriminator_out, true_labels)
 
                 # add .detach() here think about this
-                generator_discriminator_out = discriminator(torch.cat((generated_data.detach(), y_train[:, 2:, ]), dim=1))
+                generator_discriminator_out = discriminator(generated_data.detach())
                 generator_discriminator_loss = criterion(generator_discriminator_out, fake_labels)
 
                 discriminator_loss = (true_discriminator_loss + generator_discriminator_loss) / 2

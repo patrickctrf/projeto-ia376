@@ -77,8 +77,10 @@ class NsynthDatasetFourier(Dataset):
         # Retorna X e Y:
         # Sendo x == (ruido, one hot do timbre (family), one hot das notas)
         # Sendo y == (sample_de_audio,)
-        return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
-               torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
+        # return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
+        #        torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
+        return torch.normal(mean=0, std=1.0, size=(128, self.noise_length)), \
+               torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...])), dim=0)
 
     def __len__(self, ):
         return self.summary_df.shape[0]

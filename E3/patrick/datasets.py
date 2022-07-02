@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 # import tensorflow as tf
 import torch
-from matplotlib import pyplot as plt
 from scipy import signal
 from scipy.io import wavfile
 from torch.utils.data import Dataset, DataLoader
@@ -104,7 +103,7 @@ class NsynthDatasetFourier(Dataset):
         # return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
         #        torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
 
-        return torch.normal(mean=0, std=1.0, size=(16, self.noise_length, self.noise_length)), \
+        return torch.normal(mean=0, std=1.0, size=(128, self.noise_length)), \
                torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]),), dim=0)
 
     def __len__(self, ):

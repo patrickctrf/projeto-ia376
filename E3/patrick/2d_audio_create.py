@@ -17,7 +17,7 @@ generator = torch.load("checkpoints/best_generator.pth", map_location=torch.devi
 #         torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(-1, 1),
 #     ), dim=0).view(1, 32, 1, 1)
 
-ruido_e_classes = torch.normal(mean=0, std=1.0, size=(16, 1)).view(1, 16, 1, 1)
+ruido_e_classes = torch.normal(mean=0, std=1.0, size=(128, 16)).view(1, 128, 16)
 
 fourier_sintetizado = generator(ruido_e_classes)[0].detach().numpy()
 

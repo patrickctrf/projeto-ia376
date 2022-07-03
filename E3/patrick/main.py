@@ -21,7 +21,7 @@ def experiment(device=torch.device("cpu")):
 
     # Models
     generator = Generator2DUpsampled(n_input_channels=256)
-    discriminator = Discriminator2D(seq_length=target_length, n_input_channels=2, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
+    discriminator = Discriminator2D(n_input_channels=2)
 
     # Put in GPU (if available)
     generator.to(device)

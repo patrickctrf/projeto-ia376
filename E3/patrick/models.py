@@ -163,7 +163,7 @@ class TransformerGenerator(torch.nn.Module):
 
 
 class Generator2DUpsampled(nn.Module):
-    def __init__(self, n_input_channels=24, bias=False):
+    def __init__(self, n_input_channels=24, bias=True):
         super().__init__()
 
         self.feature_generator = Sequential(
@@ -194,8 +194,7 @@ class Generator2DUpsampled(nn.Module):
 
 
 class Discriminator2D(nn.Module):
-    def __init__(self, seq_length=64000, n_input_channels=24,
-                 kernel_size=7, stride=1, padding=0, dilation=1, bias=False):
+    def __init__(self, n_input_channels=24, bias=True):
         super().__init__()
 
         n_output_channels = 256

@@ -9,20 +9,18 @@ from tqdm import tqdm
 from losses import HyperbolicLoss
 from datasets import *
 from models import *
-from models import TransformerGenerator
 from ptk.utils import DataManager
 
 
 def experiment(device=torch.device("cpu")):
-    batch_size = 16
-    noise_length = 16
+    batch_size = 32
+    noise_length = 1
     target_length = 128
     use_amp = True
-    max_examples = 1_000_000
+    max_examples = 2_000_000
 
     # Models
-    generator = TransformerGenerator(dim=2048, input_size=noise_length, output_size=2048, max_seq_length=target_length, n_layers=10)
-    # discriminator = TransformerDiscriminator(dim=256, input_size=target_length, output_size=1, max_seq_length=target_length)
+    generator = Generator2DUpsampled(n_input_channels=256)
     discriminator = Discriminator2D(seq_length=target_length, n_input_channels=2, kernel_size=7, stride=1, padding=0, dilation=1, bias=True)
 
     # Put in GPU (if available)
@@ -30,17 +28,17 @@ def experiment(device=torch.device("cpu")):
     discriminator.to(device)
 
     # Optimizers
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-3, )
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-3, )
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=8e-4, )
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=8e-4, )
     generator_scaler = GradScaler()
     discriminator_scaler = GradScaler()
 
     # Variable LR
-    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 - epoch / 30000.0, 0.1))
-    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 - epoch / 30000.0, 0.1))
+    generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 - epoch / 60000.0, 0.1))
+    discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 - epoch / 60000.0, 0.1))
 
     # loss
-    criterion = MSELoss()
+    criterion = HyperbolicLoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
@@ -78,7 +76,6 @@ def experiment(device=torch.device("cpu")):
                 # We invert the labels here and don't train the discriminator because we want the generator
                 # to make things the discriminator classifies as true.
                 generator_discriminator_out = discriminator(generated_data)
-                # generator_loss = criterion(generated_data, y_train[:, :2, ])
                 generator_loss = criterion(generator_discriminator_out, true_labels)
 
             generator_scaler.scale(generator_loss).backward()
@@ -123,7 +120,7 @@ def experiment(device=torch.device("cpu")):
             total_generator_loss = 0.9 * total_generator_loss + 0.1 * generator_loss.detach().item()
 
             # Checkpoint to best models found.
-            if n_examples > last_checkpoint + 100 * batch_size and best_loss > total_generator_loss:
+            if n_examples > last_checkpoint + 100 * batch_size and (best_loss > total_generator_loss or total_generator_loss < 2.0):
                 # Update the new best loss.
                 best_loss = total_generator_loss
                 last_checkpoint = n_examples
@@ -136,6 +133,10 @@ def experiment(device=torch.device("cpu")):
                 print("\ncheckpoint!\n")
                 generator.train()
                 discriminator.train()
+
+            # training is over
+            if n_examples > max_examples:
+                break
 
         # Save everything after each epoch
         generator.eval()

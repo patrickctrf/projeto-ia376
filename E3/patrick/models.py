@@ -66,6 +66,7 @@ class _AttentionLayer(torch.nn.Module):
         return self.norm2(self.activation(logits + e))
 
 
+# discriminator = TransformerDiscriminator(dim=256, input_size=target_length, output_size=1, max_seq_length=target_length)
 class TransformerDiscriminator(torch.nn.Module):
 
     def __init__(self, dim: int, n_layers: int = 2, max_seq_length: int = 300, input_size: int = 6, output_size: int = 7):
@@ -114,6 +115,7 @@ class TransformerDiscriminator(torch.nn.Module):
         return torch.sigmoid(self.dense_network(logits)[:, 0])
 
 
+# generator = TransformerGenerator(dim=2048, input_size=noise_length, output_size=2048, max_seq_length=target_length, n_layers=10)
 class TransformerGenerator(torch.nn.Module):
 
     def __init__(self, dim: int, n_layers: int = 2, max_seq_length: int = 300, input_size: int = 6, output_size: int = 7):
@@ -130,9 +132,6 @@ class TransformerGenerator(torch.nn.Module):
         super().__init__()
         embedding_dim = dim
         self.embedding_dim = embedding_dim
-
-        # hidden_size for MLP
-        hidden_size = 2048
 
         # tokens (words indexes) embedding and positional embedding
         self.c_embedding = nn.Sequential(
@@ -164,28 +163,25 @@ class TransformerGenerator(torch.nn.Module):
 
 
 class Generator2DUpsampled(nn.Module):
-    def __init__(self, noise_length=256, target_length=64000, n_input_channels=24, n_output_channels=64,
-                 kernel_size=7, stride=1, padding=0, dilation=1,
-                 bias=False):
+    def __init__(self, n_input_channels=24, bias=False):
         super().__init__()
-        self.target_length = target_length
 
         self.feature_generator = Sequential(
             nn.Conv2d(n_input_channels, 256, kernel_size=(2, 16), stride=(1, 1), dilation=(1, 1), padding=(1, 15), bias=bias), BnActivation(256),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(256, 128, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(128, 64, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Upsample(scale_factor=2.0, mode='nearest', align_corners=None),
+            nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(64, 32, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Conv2d(32, 2, kernel_size=(1, 1), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
+            nn.Conv2d(32, 2, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
         )
 
         self.activation = nn.Tanh()
@@ -205,7 +201,7 @@ class Discriminator2D(nn.Module):
         n_output_channels = 256
 
         self.feature_extractor = Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=1, stride=3, dilation=3, bias=bias, ), BnActivation(32),
+            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=3, dilation=2, bias=bias, ), BnActivation(32),
             ResBlock(32, 64, kernel_size=3, stride=1, dilation=1, bias=bias),
             nn.AvgPool2d(2, 2),
             ResBlock(64, 128, kernel_size=3, stride=1, dilation=1, bias=bias),

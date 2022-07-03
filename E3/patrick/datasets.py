@@ -3,8 +3,9 @@ import os
 
 import numpy as np
 import pandas as pd
-# import tensorflow as tf
+import tensorflow as tf
 import torch
+from matplotlib import pyplot as plt
 from scipy import signal
 from scipy.io import wavfile
 from torch.utils.data import Dataset, DataLoader
@@ -53,33 +54,33 @@ class NsynthDatasetFourier(Dataset):
         # sample_audio_array = _scale_data(sample_audio_array)
         sample_audio_array = np.pad(sample_audio_array, [(700, 700), ], mode='constant')
 
+        f, t, espectro = signal.stft(x=sample_audio_array, fs=2048, nperseg=2048, noverlap=3 * 2048 // 4, padded=False)
+
         # espectro = tf.signal.stft(
         #     signals=sample_audio_array,
-        #     frame_length=1024,
-        #     frame_step=256,
-        #     fft_length=1024,
+        #     frame_length=2048,
+        #     frame_step=512,
+        #     fft_length=2048,
         #     pad_end=10,
         # )
         #
         # espectro = espectro.numpy().T
-        #
+
         # espectro = torch.stft(
         #     input=torch.tensor(sample_audio_array.copy()),
-        #     n_fft=1024,
-        #     win_length=1024,
-        #     hop_length=1024 // 4,
+        #     n_fft=2048,
+        #     win_length=2048,
+        #     hop_length=2048 // 4,
         #     return_complex=True,
         #     center=True,
-        # )
-
-        f, t, espectro = signal.stft(x=sample_audio_array, fs=2048, nperseg=2048, noverlap=3 * 2048 // 4, padded=False)
+        # ).numpy()
 
         # Jogamos fora a frequencia de Nyquist
         espectro = espectro[:-1]
         f = f[:-1]
 
         # # Visualizar o espectro gerado
-        # plt.pcolormesh(t, f, np.abs(espectro), vmin=0, vmax=10000, shading='gouraud')
+        # plt.pcolormesh(t, f, np.abs(espectro), vmin=0, vmax=1e5, shading='gouraud')
         # plt.show()
 
         instr_fmly_one_hot = torch.zeros(((len(self.instr_fmly_dict.keys()),) + espectro.shape))
@@ -103,7 +104,7 @@ class NsynthDatasetFourier(Dataset):
         # return torch.cat((torch.normal(mean=0, std=1.0, size=(9, self.noise_length, self.noise_length)), instr_fmly_one_hot[:, 0:1, 0:1], notas_one_hot[:, 0:1, 0:1]), dim=0).detach(), \
         #        torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]), instr_fmly_one_hot, notas_one_hot), dim=0).detach()
 
-        return torch.normal(mean=0, std=1.0, size=(128, self.noise_length)), \
+        return torch.normal(mean=0, std=1.0, size=(256, self.noise_length, self.noise_length)), \
                torch.cat((torch.tensor(magnitude_espectro[np.newaxis, ...]), torch.tensor(phase_espectro[np.newaxis, ...]),), dim=0)
 
     def __len__(self, ):

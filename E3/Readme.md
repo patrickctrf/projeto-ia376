@@ -21,7 +21,7 @@ O presente projeto foi originado no contexto das atividades da disciplina de pó
 >Durante esta etapa, obtivemos êxito na síntese através da LSTM, o Transformer ainda está em treinamento, mas já foi obtido um bom resultado no último checkpoint de treinamento, por fim, a GANSynth também está em treinamento e não obteve ainda resultados significativos no checkpoint de treinamento.
 
 ## Vídeo de apresentação da E3:
->|Vídeo de Apresentação E3  | PDF Apresentação E3 | 
+>| Vídeo de Apresentação E3  | PDF Apresentação E3 | 
 > |--|--|
 > | [![video](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://www.youtube.com/watch?v=axYGN9mMJGE) | [![pdf](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/Entrega%20E3.pdf)  |
 
@@ -106,7 +106,7 @@ Fonte: Referência Bibliográfica [1].
 >>
 >> Para a avaliação comparativa entre os dados reais e sintetizados contará com três abordagens: quantitativa, qualitativa e MIR, desta forma, teremos:
 >>
->>* **Análise Quantitativa:** considerando-se que a entrada e a saída do áudio serão dados do tipo *numpy array*, através da ferramenta Table Evaluate, será analisado o KS Teste, a fim de determinar a distância entre o que foi gerado e o real resultando no *score* entre eles;
+>>* **Análise Quantitativa:** considerando-se que a entrada e a saída do áudio serão dados do tipo *numpy array*, através da ferramenta Table Evaluate, será analisado o KS Teste, a fim de determinar a distância entre o que foi gerado e o real resultando no *score* entre eles, além disso, também será realizada uma pesquisa sensorial com os alunos da disciplina IA376L para buscar quantificar a percepção acerca dos áudios gerados;
 >>
 >> * **Análise Qualitativa:** gráfico log-log da média dos dados reais x média dos dados sintetizados (para verificar tendência de 45º); do gráfico log-log do desvio-padrão dos dados reais x desvio-padrão dos dados sintetizados (para verificar tendência de 45°); gráfico da soma cumulativa dos dados reais e sintetizados (para verificar diferença de distribuição), histograma dos dados reais e sintetizados (para verificar diferença de distribuição);
 >>
@@ -138,59 +138,115 @@ Fonte: Referência Bibliográfica [1].
 
 ## Resultados e Discussão dos Resultados
 
->Para a GANSynth ainda não existem resultados coerentes, uma vez que a GAN ainda não convergiu, de forma que não podemos afirmar sobre a qualidade dos resultados que irá gerar.
->Para o LSTM houve convergência, de forma que temos os seguintes resultados do treino:
-><p align="center">
-><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/pretreinado.png" height="700">
-></p>
+>**GANSynth:** Embora muitas tentativas de adaptação da arquitetura, mudanças de hiperparâmetros e tempo de treinamento tenham sido realizadas, para a GANSynth não existem resultados compatíveis com a proposta estabelecida na ref. Bibliográfica [1], uma vez que a GAN não convergiu mesmo com todos os esforços, de forma que os áudios resultantes podem ser classificados apenas como ruído com a frequência fundamental em 8kHz, como se segue:
+>> | | |
+>> |--|--|
+>> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/h04.wav)  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiogan.png" height="200">  |
+>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stfgan.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromagan.png" height="200"> |
+>> 
+>**LSTM:** Para o LSTM houve convergência, de forma que temos os seguintes resultados do treino:
+>><p align="center">
+>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/pretreinado.png" height="700">
+>></p>
 
->Além disso, temos o seguinte cenário de MIR para o áudio de entrada e o áudio de saída:
+>>**MIR:** Além disso, temos o seguinte cenário de MIR para o áudio de entrada e o áudio de saída:
 
-> |Áudio Real  | Áudio Sintetizado| 
-> |--|--|
-> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/input.wav)  | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/output1.wav)  |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barsi.png" height="200"> |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiore.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiosin.png" height="200">  |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftsin.png" height="200"> |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especsi.png" height="200"> |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melre.png" height="200"> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melsin.png" height="200">  |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromare.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromasi.png" height="200">  |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccsin.png" height="200"> |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/band.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rool.png" height="200"> |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/flat.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/zero.png" height="200">  |
-> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rms.png" height="200">  | .  |
+>>> |Áudio Real  | Áudio Sintetizado| 
+>>> |--|--|
+>>> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/input.wav)  | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/output1.wav)  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barsi.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/midmap1.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/midmap2.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiore.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiosin.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftsin.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especsi.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melre.png" height="200"> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melsin.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromare.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromasi.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccsin.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/band.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rool.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/flat.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/zero.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rms.png" height="200">  |   |
 
->Já para a resposta tabular, temos:
-><p align="center">
-><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab.png" height="350">
-><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab2.png" height="350">
-><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab3.png" height="350">
-></p>
->Assim, a resposta da LSTM foi bastante proveitosa em termos de Music Information Retrieval, sendo apenas considerável a mudança do compasso 3/4 da música original para 4/4 e o aumento significativo da energia no áudio de saída, com magnitude aproximadamente 9x maior que o áudio original, além disso, o resultado esperado respeita o campo harmônico original e o bit (168), resultando em um áudio palatável e plausível como sequência melódica.
->
->Já como dado tabular, temos um valor de KS Test de 0,7780642732875434 indicando que há proximidade, mas não houve cópia exata dos dados de entrada, os ângulos de desvio-padrão e médias log-log também estão fora do ângulo de 45° e a soma cumulativa também indica alguma semelhança, mas sem cópia.
->Já o Transformer, assim como a GANSynth ainda continua em treinamento, contudo, no último checkpoint foi possível verificar o seguinte áudio de saída:
+>>**Resposta Tabular:** Já para a resposta tabular, temos:
+>>><p align="center">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab.png" height="350">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab2.png" height="350">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab3.png" height="350">
+>>></p>
+>>>
+>>>**KS Test = 0,7780642732875434**
+>>>
+>>**Pesquisa sensorial:** Também foi realizada uma pesquisa sensorial com os alunos da disciplina IA376L, de forma que 13 alunos responderam a pesquisa e o resultado para a composição LSTM foi o seguinte:
+>>><p align="center">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/pesqlstm.png" height="600">
+>>></p>
+>>>
+>>Assim, para o grupo, a resposta do LSTM foi bastante proveitosa em termos de Music Information Retrieval, sendo apenas considerável a mudança do compasso 3/4 da música original para 4/4 e o aumento significativo da energia no áudio de saída, com magnitude aproximadamente 9x maior que o áudio original, além disso, o resultado esperado respeita o campo harmônico original e o bit (168), resultando em um áudio plausível como sequência melódica.
+>>
+>>Já como dado tabular, temos um valor de KS Test de 0,7780642732875434 indicando que há proximidade, mas não houve cópia exata dos dados de entrada, os ângulos de desvio-padrão e médias log-log também estão fora do ângulo de 45° e a soma cumulativa também indica alguma semelhança, mas sem cópia. Além disso, pela pesquisa sensorial o que fica evidente é que a maioria das pessoas considerou o áudio como uma música sem ruído, com audibilidade agradável e com uma composição coerente, confundível com um áudio real, resultando numa nota média 7,7/10.
 
-> |Áudio Sintetizado  | Partitura| 
-> |--|--|
-> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/output2.wav)  | ![bar](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barsi2.png) |
 
->Desta forma, o Transformer, mesmo ainda em treinamento, resultou numa sequência de melodia e acompanhamento, que de forma geral conseguiu trazer o compasso 3/4 da música original, mas alterou o bit da música, ainda que levemente (171), mas mantendo o campo harmônico e resultando em um áudio palatável e plausível como trecho musical.
+>**Transformer:** Para o Transformer houve convergência, de forma que temos os seguintes resultados:
+
+>>**MIR:** Além disso, temos o seguinte cenário de MIR para o áudio de entrada e o áudio de saída:
+
+>>> |Áudio Real  | Áudio Sintetizado| 
+>>> |--|--|
+>>> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/input.wav)  | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/output2.wav)  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barsi2.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/midmap1.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/midmap3.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiore.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiot.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftt.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/espect.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melre.png" height="200"> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melspect.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromare.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromat.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfcct.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/bandt.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rollt.png" height="200"> |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/flatt.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/zerot.png" height="200">  |
+>>> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rmst.png" height="200">  |   |
+
+>>**Resposta Tabular:** Já para a resposta tabular, temos:
+>>><p align="center">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/a01.png" height="350">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/a02.png" height="350">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/a03.png" height="350">
+>>></p>
+>>>
+>>>**KS Test = 0,7722103025240228**
+>>>
+>>**Pesquisa sensorial:** Também foi realizada uma pesquisa sensorial com os alunos da disciplina IA376L, de forma que 13 alunos responderam a pesquisa e o resultado para a composição LSTM foi o seguinte:
+>>><p align="center">
+>>><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/pesqtrans.png" height="600">
+>>></p>
+>>>
+>>Assim, para o grupo, a resposta do Transformer também foi bastante proveitosa em termos de Music Information Retrieval, de forma que a energia no áudio de saída manteve magnitude semelhante ao áudio original, o resultado esperado respeita o campo harmônico original e o compasso 3/4, tendo uma leve variação do bit original (168) para o bit sintetizado (171), resultando em um áudio plausível como sequência melódica.
+>>
+>>Já como dado tabular, temos um valor de KS Test de 0,7722103025240228 indicando que há proximidade, mas não houve cópia exata dos dados de entrada, os ângulos de desvio-padrão e médias log-log também estão fora do ângulo de 45° e a soma cumulativa também indica alguma semelhança, mas sem cópia. Além disso, pela pesquisa sensorial o que fica evidente é que, diferente da composição por LSTM, houve uma maior distribuição de opiniões sobre a qualidade do áudio, desta vez a maioria das pessoas considerou o áudio como uma música sem ruído, confundível com um áudio real, mas com audibilidade pouco agradável e uma composição estranha, resultando numa nota média 6,3/10.
 
 ## Conclusão
 
->*Recriar a GANSynth layer by layer, embora bastante didático, demonstrou ser desafiador e nos deparamos com entraves não necessariamente citados no artigo de referência, de forma que o grupo tomou a decisão de tentar também outras arquiteturas e metodologias;
+>* Recriar a GANSynth layer by layer, embora bastante didático, demonstrou ser desafiador e nos deparamos com entraves não necessariamente citados no artigo de referência, de forma que o grupo tomou a decisão de tentar também outras arquiteturas e metodologias. Todavia tentamos várias alternativas com relação aos hiperparâmetros, tempo de treinamento, alterações básicas de arquitetura, mas infelizmente esta montagem não resultou em áudio enquanto música, somente áudio com fundamental em 8kHz, de forma que podemos caracterizar como ruído;
 >
->*A mudança de paradigma para note sequence, isto é, token de música, demonstra ser um fator bastante significativo com relação ao Music Information Retrieval, já que esta estrutura mantém as propriedades do arquivo MIDI e isto se reflete na qualidade do áudio. Para maior ilustração, cabe as figuras abaixo, indicando o formato do arquivo mid e o arquivo de note sequence;
+>* A mudança de paradigma para note sequence, isto é, token de música, demonstra ser um fator bastante significativo com relação ao Music Information Retrieval, já que esta estrutura mantém as propriedades do arquivo MIDI e isto se reflete na qualidade do áudio. Para maior ilustração, cabe as figuras abaixo, indicando o formato do arquivo mid e o arquivo de note sequence;
 >Arquivo MIDI:
+><p align="center">
 ><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/arquivomid.png" height="400">
-
+></p>	
+><p align="center">
+>Fonte: Referência Bibliográfica [4].
+></p>
 >Note sequence:
+><p align="center">
 ><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/notesequence.png" height="50">
+></p>
 >
->*Mesmo com a perplexidade próxima a 2, os resultados da LSTM foram bastante representativos, o mesmo acontece com o Transformer, que ainda que não tenha concluído seu treinamento já criou um áudio bastante plausível para a entrada;
+><p align="center">
+>Fonte: Referência Bibliográfica [4].
+></p>
 >
->*Embora os resultados parciais tenham sido interessantes, ainda assim, buscaremos compreender e tentar corrigir as mudanças de compasso, bit, magnitude, além de concluirmos a GANSynth e analisarmos seu resultado.
+>* Mesmo com a perplexidade próxima a 2, o grupo considera que os resultados da LSTM foram bastante representativos, acontecendo o mesmo com o Transformer, de forma que ambos os áudios estavam em um range plausível para a entrada;
+>* Embora em termos estruturais o resultado do Transformer seja mais fiel ao padrão de entrada, isto é manteve o compasso 3/4, a magnitude da energia e o padrão de composição, o LSTM teve maior aceitação perante o público conforme a pesquisa sensorial, de forma que fica evidente que embora tecnicamente o Transformer tenha um desempenho superior, lhe falta criatividade de composição e definição de áudio. 
+>
+>* Procuramos compreender resultados parciais da entrega anterior em busca de respostas para tentar corrigir as mudanças de compasso, bit, magnitude que apareceram no LSTM, contudo, nossos esforços pessoais não resultaram em melhora e, também, a equipe do Magenta, responsável direto pelos modelos pré-treinados não deu retorno com relação aos questionamentos, além disso, após o trabalho realizado, ocorreram atualizações no Google Colab e no Tensorflow, de forma que isso prejudicou bastante o desempenho dos modelos pré-treinados, havendo a necessidade de downgrade para versões anteriores.
 
 ## Referências Bibliográficas
 >[1] Engel, J.; Agrawal, K. K.; Chen, S.; Gulrajani, I.; Donahue, C.; Roberts, A.;”**Gansynth: Adversarial Neural Audio Synthesis**”; ICLR; 2019;

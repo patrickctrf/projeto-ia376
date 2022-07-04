@@ -1,10 +1,10 @@
-# `<Estudo de caso: Geração de áudio musical através de GAN, LSTM e Transformer>`
-# `<Case study: Generation of musical audio through GAN,   LSTM and Transformer>`
+
+# `Estudo de caso: Geração de áudio musical através de GAN, LSTM e Transformer`
+# `Case study: Generation of musical audio through GAN,   LSTM and Transformer` 
 
 ## Apresentação:
 
-O presente projeto foi originado no contexto das atividades da disciplina de pós-graduação *IA376L - Deep Learning aplicado a Síntese de Sinais*, 
-oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dra. Paula Dornhofer Paro Costa, do Departamento de Engenharia de Computação e Automação (DCA) da Faculdade de Engenharia Elétrica e de Computação (FEEC).
+O presente projeto foi originado no contexto das atividades da disciplina de pós-graduação *IA376L - Deep Learning aplicado a Síntese de Sinais*, oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dra. Paula Dornhofer Paro Costa, do Departamento de Engenharia de Computação e Automação (DCA) da Faculdade de Engenharia Elétrica e de Computação (FEEC).</p>
 
 ## Equipe:
 
@@ -16,21 +16,28 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 
 ## Resumo (Abstract)
 
->Este projeto visa realizar a síntese de áudio voltado para música. Para isso, iremos reproduzir os resultados encontrados no artigo GANSynth, além de realizar um estudo de caso acerca de diferentes possibilidades de arquiteturas para geração de áudio, como LSTM e Transformer.  >Utilizaremos métricas de avaliação que possam analisar a fidelidade dos dados reais e sintetizados, considerando Music Information Retrieval e também analisando a resposta de forma tabular. 
+>Este projeto visa realizar a síntese de áudio voltado para música. Para isso, iremos reproduzir os resultados encontrados no artigo GANSynth, além de realizar um estudo de caso acerca de diferentes possibilidades de arquiteturas para geração de áudio, como LSTM e Transformer.  
+>Utilizaremos métricas de avaliação que possam analisar a fidelidade dos dados reais e sintetizados, considerando Music Information Retrieval e também analisando a resposta de forma tabular.
 >Durante esta etapa, obtivemos êxito na síntese através da LSTM, o Transformer ainda está em treinamento, mas já foi obtido um bom resultado no último checkpoint de treinamento, por fim, a GANSynth também está em treinamento e não obteve ainda resultados significativos no checkpoint de treinamento.
 
-## Vídeo de apresentação da E2:
->|Vídeo de Apresentação E2  | PDF Apresentação E2 | 
+## Vídeo de apresentação da E3:
+>|Vídeo de Apresentação E3  | PDF Apresentação E3 | 
 > |--|--|
-> | [![video](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/capa.jpg)](https://www.youtube.com/watch?v=axYGN9mMJGE) | [![pdf](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/capa.jpg)](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/Entrega%20E2.pdf)  |
+> | [![video](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://www.youtube.com/watch?v=axYGN9mMJGE) | [![pdf](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/Entrega%20E3.pdf)  |
 
 ## Descrição do Problema/Motivação
 
 >Grandes avanços no estado da arte de síntese de áudio foram iniciados quase exclusivamente por modelos autorregressivos, como WaveNet. No entanto, essa rede perde em termos de coerência global do áudio gerado, além de ter baixa taxa de amostragem, devido ao processo iterativo utilizado.
 >
 >Mesmo redes neurais com forte coerência local, como as redes convolucionais, têm dificuldade em realizar a modelagem de áudio, já que as múltiplas frequências que compõem as amostras não coincidem com o stride utilizado nestas camadas, gerando batimento que aumenta o erro de reprodução em fase, conforme estendemos a geração.
-![fig01](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/F01.png)
 >
+<p align="center">
+	<img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/F01.png" height="280">
+</p>
+<p align="center">
+Fonte: Referência Bibliográfica [1].
+</p>
+
 >Este é um desafio para uma rede de síntese, pois ela deve aprender todas as combinações apropriadas de frequência/fase e ativá-las na combinação certa para produzir uma forma de onda coerente. 
 >
 >Além disso, para um contexto específico como a música, com regras e teoria bastante consolidadas, a síntese resultante estaria de acordo com o que é estabelecido com música?
@@ -54,7 +61,12 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 >>
 >>Neste caso, a rede será construída layer by layer seguindo a ref. [1], de forma que, diferentes arquiteturas podem ocupar o lugar do gerador e do discriminador, mas o modelo geral é apresentado na figura a seguir. Este tipo de estrutura é classificado como uma CGAN (as GANs cuja classe de saída é controlável).
 
->![FIGURA GAN](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/FIG02.png)
+>> <p align="center">
+>> <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/FIG02.png" height="500">
+>> </p>
+>> <p align="center">
+>> Fonte: Referência Bibliográfica [1].
+>> </p>
 
 >>Temos como entrada um tensor de ruído cuja rede geradora mapeia um hiperespaço de representação de áudios em tempo de treinamento, além de classes de timbres e notas em one-hot encoding, as quais definem o tipo de saída desejada.
 >>
@@ -73,16 +85,22 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 >**Metodologia para o LSTM:**
 >>
 >>Para este caso, a rede da ref. [2] será utilizada de forma pré-treinada sem que haja a necessidade da construção layer by layer, uma vez que a experiência do grupo na tratativa com a GANSynth demonstrou ser bastante desafiadora. Assim, considerando que para esta arquitetura buscaremos uma geração do tipo composição musical, será utilizado o [Pop MIDI Dataset](https://drive.google.com/uc?id=1WcOkwcFfIoELXE4ueyVS2QlCuywAd5K6), composto por 1000 arquivos midi com músicas polifônicas com diferentes gêneros musicais, para treinamento com um batch size 64, learning rate 0,001, layers (128,128,128), 20000 passos e presença de dropout, uma vez que o uso direto do LSTM não trouxe resultados positivos.
-
->![FIG LSTM](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/lstm.png) 
-
+><p align="center">
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/lstm.png" height="600">
+></p>
+><p align="center">
+>Fonte: Referência Bibliográfica [2].
+></p>
 
 >*Metodologia para o Transformer:*
 >>
 >>Para este caso, a rede da ref. [3] também será utilizada de forma pré-treinada, contudo, diferente do LSTM, será utilizada uma fração do [Maestro Dataset](https://magenta.tensorflow.org/datasets/maestro#dataset), originalmente composto por mais 30000 arquivos de áudios musicais em piano para treinamento local e com algoritmo de atenção, para que a resposta possa ser mais otimizada.
-
->![FIG Transformer](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/transformer.png)
-
+><p align="center">
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/transformer.png" height="400">
+></p>
+><p align="center">
+>Fonte: Referência Bibliográfica [3].
+></p>
 
 >**Metodologia de avaliação:**
 >>
@@ -122,31 +140,32 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 
 >Para a GANSynth ainda não existem resultados coerentes, uma vez que a GAN ainda não convergiu, de forma que não podemos afirmar sobre a qualidade dos resultados que irá gerar.
 >Para o LSTM houve convergência, de forma que temos os seguintes resultados do treino:
-
->![Figura treino](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/pretreinado.png)
+><p align="center">
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/pretreinado.png" height="700">
+></p>
 
 >Além disso, temos o seguinte cenário de MIR para o áudio de entrada e o áudio de saída:
 
 > |Áudio Real  | Áudio Sintetizado| 
 > |--|--|
-> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/input.wav)  | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/output1.wav)  |
-> | ![bar](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/barre.png)  | ![bar](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/barsi.png) |
-> | ![audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/audiore.png)  | ![audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/audiosin.png)  |
-> | ![stft](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/stftre.png)  | ![stft](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/stftsin.png) |
-> | ![espec](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/especre.png)  | ![espec](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/especsi.png) |
-> | ![melespec](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/melre.png) | ![melespec](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/melsin.png)  |
-> | ![chroma](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/cromare.png)  | ![chroma](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/cromasi.png)  |
-> | ![mfcc](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/mfccre.png)  | ![mfcc](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/mfccsin.png) |
-> | ![band](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/band.png)  | ![roolof](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/rool.png) |
-> | ![flatnes](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/flat.png)  | ![zcr](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/zero.png)  |
-> > | ![rms](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/rms.png)  | .  |
+> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/input.wav)  | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/output1.wav)  |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barsi.png" height="200"> |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiore.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/audiosin.png" height="200">  |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/stftsin.png" height="200"> |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/especsi.png" height="200"> |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melre.png" height="200"> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/melsin.png" height="200">  |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromare.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/cromasi.png" height="200">  |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccre.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/mfccsin.png" height="200"> |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/band.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rool.png" height="200"> |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/flat.png" height="200">  | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/zero.png" height="200">  |
+> | <img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/rms.png" height="200">  | .  |
 
 >Já para a resposta tabular, temos:
-
->![FIG 03](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/tab.png)
->![FIG 04](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/tab2.png)
->![FIG 05](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/tab3.png)
-
+><p align="center">
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab.png" height="350">
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab2.png" height="350">
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/tab3.png" height="350">
+></p>
 >Assim, a resposta da LSTM foi bastante proveitosa em termos de Music Information Retrieval, sendo apenas considerável a mudança do compasso 3/4 da música original para 4/4 e o aumento significativo da energia no áudio de saída, com magnitude aproximadamente 9x maior que o áudio original, além disso, o resultado esperado respeita o campo harmônico original e o bit (168), resultando em um áudio palatável e plausível como sequência melódica.
 >
 >Já como dado tabular, temos um valor de KS Test de 0,7780642732875434 indicando que há proximidade, mas não houve cópia exata dos dados de entrada, os ângulos de desvio-padrão e médias log-log também estão fora do ângulo de 45° e a soma cumulativa também indica alguma semelhança, mas sem cópia.
@@ -154,7 +173,7 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 
 > |Áudio Sintetizado  | Partitura| 
 > |--|--|
-> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/output2.wav)  | ![bar](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/barsi2.png) |
+> | [audio](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/output2.wav)  | ![bar](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/barsi2.png) |
 
 >Desta forma, o Transformer, mesmo ainda em treinamento, resultou numa sequência de melodia e acompanhamento, que de forma geral conseguiu trazer o compasso 3/4 da música original, mas alterou o bit da música, ainda que levemente (171), mas mantendo o campo harmônico e resultando em um áudio palatável e plausível como trecho musical.
 
@@ -164,10 +183,10 @@ oferecida no primeiro semestre de 2022, na Unicamp, sob supervisão da Profa. Dr
 >
 >*A mudança de paradigma para note sequence, isto é, token de música, demonstra ser um fator bastante significativo com relação ao Music Information Retrieval, já que esta estrutura mantém as propriedades do arquivo MIDI e isto se reflete na qualidade do áudio. Para maior ilustração, cabe as figuras abaixo, indicando o formato do arquivo mid e o arquivo de note sequence;
 >Arquivo MIDI:
->![mid](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/arquivomid.png)
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/arquivomid.png" height="400">
 
 >Note sequence:
->![note](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E2/reports/figures/notesequence.png)
+><img src="https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/notesequence.png" height="50">
 >
 >*Mesmo com a perplexidade próxima a 2, os resultados da LSTM foram bastante representativos, o mesmo acontece com o Transformer, que ainda que não tenha concluído seu treinamento já criou um áudio bastante plausível para a entrada;
 >

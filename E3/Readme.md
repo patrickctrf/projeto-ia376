@@ -16,9 +16,11 @@ O presente projeto foi originado no contexto das atividades da disciplina de pó
 
 ## Resumo (Abstract)
 
->Este projeto visa realizar a síntese de áudio voltado para música. Para isso, iremos reproduzir os resultados encontrados no artigo GANSynth, além de realizar um estudo de caso acerca de diferentes possibilidades de arquiteturas para geração de áudio, como LSTM e Transformer.  
->Utilizaremos métricas de avaliação que possam analisar a fidelidade dos dados reais e sintetizados, considerando Music Information Retrieval e também analisando a resposta de forma tabular.
->Durante esta etapa, obtivemos êxito na síntese através da LSTM, o Transformer ainda está em treinamento, mas já foi obtido um bom resultado no último checkpoint de treinamento, por fim, a GANSynth também está em treinamento e não obteve ainda resultados significativos no checkpoint de treinamento.
+>Este projeto visa realizar a síntese de áudio voltado para música. Para isso, iremos reproduzir os resultados encontrados no artigo GANSynth, além de realizar um estudo de caso acerca de diferentes possibilidades de arquiteturas pré-treinadas para geração de áudio, como LSTM e Transformer.  
+>
+>Utilizamos métricas de avaliação que avaliam a fidelidade dos dados reais e sintetizados enquanto música, considerando Music Information Retrieval, analisando a resposta de forma tabular (KS Test e análise gráfica), além de uma pesquisa sensorial com os alunos da disciplina IA376L.
+>
+>Obtivemos êxito na síntese através da LSTM e do Transformer, contudo a GANSynth não obteve resultados significativos em termos musicais, resultando apenas em áudios com fundamental em 8kHz, o que pode ser caracterizado como ruído.
 
 ## Vídeo de apresentação da E3:
 >| Vídeo de Apresentação E3  | PDF Apresentação E3 | 

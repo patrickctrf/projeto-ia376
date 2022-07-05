@@ -10,5 +10,3 @@
 [E2](https://github.com/patrickctrf/projeto-ia376/tree/e1gr/E2)
 >
 [E3](https://github.com/patrickctrf/projeto-ia376/tree/e1gr/E3)
->
-[E4](https://github.com/patrickctrf/projeto-ia376/tree/e1gr/E4)

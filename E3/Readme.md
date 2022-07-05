@@ -25,7 +25,7 @@ O presente projeto foi originado no contexto das atividades da disciplina de pó
 ## Vídeo de apresentação da E3:
 >| Vídeo de Apresentação E3  | PDF Apresentação E3 | 
 > |--|--|
-> | [![video](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://www.youtube.com/watch?v=axYGN9mMJGE) | [![pdf](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/Entrega%20E3.pdf)  |
+> | [![video](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://youtu.be/fHYpAW0uwow) | [![pdf](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/capa.jpg)](https://github.com/patrickctrf/projeto-ia376/blob/e1gr/E3/reports/figures/Entrega%20E3.pdf)  |
 
 ## Descrição do Problema/Motivação
 

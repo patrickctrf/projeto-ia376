@@ -6,8 +6,8 @@ from torch.nn import MSELoss
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from losses import HyperbolicLoss
 from datasets import *
+from losses import HyperbolicLoss
 from models import *
 from ptk.utils import DataManager
 
@@ -38,7 +38,7 @@ def experiment(device=torch.device("cpu")):
     discriminator_scheduler = torch.optim.lr_scheduler.LambdaLR(discriminator_optimizer, lambda epoch: max(1 - epoch / 60000.0, 0.1))
 
     # loss
-    criterion = HyperbolicLoss()
+    criterion = MSELoss()
 
     # Train Data
     train_dataset = NsynthDatasetFourier(path="/media/patrickctrf/1226468E26467331/Users/patri/3D Objects/projeto-ia376/E2/nsynth-train/", noise_length=noise_length)
@@ -53,6 +53,7 @@ def experiment(device=torch.device("cpu")):
     tqdm_bar_epoch = tqdm(range(max_examples))
     tqdm_bar_epoch.set_description("epoch: 0. ")
     last_checkpoint = 0
+    last_reset = 0
 
     n_examples = 0
     while n_examples < max_examples:
@@ -105,8 +106,8 @@ def experiment(device=torch.device("cpu")):
 
             tqdm_bar_epoch.set_description(
                 f'current_generator_loss: {total_generator_loss:5.5f}' +
-                f'. disc_fake_err: {generator_discriminator_out.detach().mean():5.5f}' +
-                f'. disc_real_acc: {true_discriminator_out.detach().mean():5.5f}' +
+                f'. disc_fake_err: {generator_discriminator_out.detach().mean().item():5.5f}' +
+                f'. disc_real_acc: {true_discriminator_out.detach().mean().item():5.5f}' +
                 f'. gen_lr: {get_lr(generator_optimizer):1.6f}' +
                 f'. disc_lr: {get_lr(discriminator_optimizer):1.6f}'
             )
@@ -133,6 +134,13 @@ def experiment(device=torch.device("cpu")):
                 print("\ncheckpoint!\n")
                 generator.train()
                 discriminator.train()
+
+            if generator_discriminator_out.detach().mean().item() < 0.1 and 0.9 < true_discriminator_out.detach().mean().item() and n_examples > last_reset + 100 * batch_size:
+                print("\nReset generator weights. Stuck in local minimum.")
+                last_reset = n_examples
+                generator = Generator2DUpsampled(n_input_channels=256).to(device)
+                generator_optimizer = torch.optim.Adam(generator.parameters(), lr=8e-4, )
+                generator_scheduler = torch.optim.lr_scheduler.LambdaLR(generator_optimizer, lambda epoch: max(1 - epoch / 60000.0, 0.1))
 
             # training is over
             if n_examples > max_examples:

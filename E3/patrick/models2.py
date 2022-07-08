@@ -167,7 +167,7 @@ class Generator2DUpsampled(nn.Module):
         super().__init__()
 
         self.feature_generator = Sequential(
-            nn.Conv2d(n_input_channels, 256, kernel_size=(2, 16), stride=(1, 1), dilation=(1, 1), padding=(1, 15), bias=bias), BnActivation(256),
+            nn.Conv2d(n_input_channels, 256, kernel_size=(2, 16), stride=(1, 1), dilation=(1, 1), padding=(1, 15), bias=bias), PnActivation(),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(256, 256, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
@@ -181,7 +181,7 @@ class Generator2DUpsampled(nn.Module):
             ResBlock(128, 64, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=None),
             ResBlock(64, 32, kernel_size=3, stride=1, dilation=1, padding=0, bias=bias),
-            nn.Conv2d(32, 2, kernel_size=(3, 3), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
+            nn.Conv2d(32, 2, kernel_size=(1, 1), stride=(1, 1), dilation=(1, 1), padding='same', bias=bias),
         )
 
         self.activation = nn.Tanh()
@@ -369,39 +369,6 @@ class ResBlock(nn.Module):
     module.
         """
         super(ResBlock, self).__init__()
-
-        self.feature_extractor = \
-            Sequential(
-                nn.Conv2d(n_input_channels, n_output_channels, kernel_size,
-                          stride, kernel_size // 2 * dilation, dilation,
-                          groups, bias, padding_mode),
-                BnActivation(n_output_channels),
-                nn.Conv2d(n_output_channels, n_output_channels, kernel_size,
-                          stride, kernel_size // 2 * dilation,
-                          dilation, groups, bias, padding_mode),
-            )
-
-        self.skip_connection = \
-            Sequential(
-                nn.Conv2d(n_input_channels, n_output_channels, 1,
-                          stride, padding, dilation, groups, bias, padding_mode)
-            )
-
-        self.activation = BnActivation(n_output_channels)
-
-    def forward(self, input_seq):
-        return self.activation(self.feature_extractor(input_seq) + self.skip_connection(input_seq))
-
-
-class ResBlockGen(nn.Module):
-    def __init__(self, n_input_channels=6, n_output_channels=7,
-                 kernel_size=7, stride=1, padding=0, dilation=1,
-                 groups=1, bias=True, padding_mode='zeros'):
-        """
-    ResNet-like block, receives as arguments the same that PyTorch's Conv1D
-    module.
-        """
-        super(ResBlockGen, self).__init__()
 
         self.feature_extractor = \
             Sequential(

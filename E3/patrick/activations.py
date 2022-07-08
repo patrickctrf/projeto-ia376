@@ -1,8 +1,61 @@
-import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from tqdm import tqdm
+
+__all__ = ["PnActivation", "BnActivation", "LnActivation", "SReLU"]
+
+
+@torch.jit.script
+def _pixel_norm(x):
+    return x / (1 / x.size(1) * (x ** 2).sum(dim=1, keepdim=True)).sqrt()
+
+
+class PixelNorm(nn.Module):
+    def __init__(self):
+        super(PixelNorm, self).__init__()
+
+    def forward(self, x):
+        return _pixel_norm(x)
+
+
+class PnActivation(nn.Module):
+    def __init__(self, num_features=1):
+        super().__init__()
+
+        self.activation = nn.Sequential(
+            nn.LeakyReLU(negative_slope=0.2),
+            PixelNorm(),
+        )
+
+    def forward(self, x):
+        return self.activation(x)
+
+
+class BnActivation(nn.Module):
+    def __init__(self, num_features=1):
+        super().__init__()
+
+        self.activation = nn.Sequential(
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.BatchNorm2d(num_features=num_features, momentum=0.99),
+        )
+
+    def forward(self, x):
+        return self.activation(x)
+
+
+class LnActivation(nn.Module):
+    def __init__(self, normalized_shape=1):
+        super().__init__()
+
+        self.activation = nn.Sequential(
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.LayerNorm(normalized_shape=normalized_shape),
+        )
+
+    def forward(self, x):
+        return self.activation(x)
 
 
 class SReLU(nn.Module):
@@ -59,32 +112,6 @@ activation = SReLU(normalized_shape=(L1, L2, L3))
     def forward(self, x):
         return torch.where(x > self.threshold_r, self.threshold_r + self.alpha_r * (x - self.threshold_r),
                            torch.where(x < self.threshold_l, self.threshold_l + self.alpha_r * (x - self.threshold_l), x))
-
-
-class BnActivation(nn.Module):
-    def __init__(self, num_features=1):
-        super().__init__()
-
-        self.activation = nn.Sequential(
-            nn.LeakyReLU(),
-            nn.BatchNorm2d(num_features=num_features, momentum=0.99),
-        )
-
-    def forward(self, x):
-        return self.activation(x)
-
-
-class LnActivation(nn.Module):
-    def __init__(self, normalized_shape=1):
-        super().__init__()
-
-        self.activation = nn.Sequential(
-            nn.LeakyReLU(),
-            nn.LayerNorm(normalized_shape=normalized_shape),
-        )
-
-    def forward(self, x):
-        return self.activation(x)
 
 
 if __name__ == '__main__':
